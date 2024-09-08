@@ -74,6 +74,11 @@ import {
   ActivityFeedTabs,
 } from './ActivityFeedTab.interface';
 
+const componentsVisibility = {
+  showThreadIcon: false,
+  showRepliesContainer: true,
+};
+
 export const ActivityFeedTab = ({
   fqn,
   owners = [],
@@ -429,10 +434,7 @@ export const ActivityFeedTab = ({
         <ActivityFeedListV1
           hidePopover
           activeFeedId={selectedThread?.id}
-          componentsVisibility={{
-            showThreadIcon: false,
-            showRepliesContainer: true,
-          }}
+          componentsVisibility={componentsVisibility}
           emptyPlaceholderText={placeholderText}
           feedList={entityThread}
           isForFeedTab={isForFeedTab}
@@ -480,7 +482,10 @@ export const ActivityFeedTab = ({
                   hidePopover={false}
                   isForFeedTab={isForFeedTab}
                 />
-                <ActivityFeedEditor className="m-t-md" onSave={onSave} />
+                <ActivityFeedEditor
+                  className="m-t-md feed-editor"
+                  onSave={onSave}
+                />
               </div>
             </div>
           ) : (

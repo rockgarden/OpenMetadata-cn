@@ -12,6 +12,7 @@
  */
 import { APIRequestContext, Page } from '@playwright/test';
 import { Operation } from 'fast-json-patch';
+import { SERVICE_TYPE } from '../../constant/service';
 import { uuid } from '../../utils/common';
 import { visitEntityPage } from '../../utils/entity';
 import { EntityTypeEndpoint } from './Entity.interface';
@@ -26,6 +27,7 @@ type ResponseDataType = {
 };
 
 export class MlModelClass extends EntityClass {
+  private mlModelName = `pw-mlmodel-${uuid()}`;
   service = {
     name: `pw-ml-model-service-${uuid()}`,
     serviceType: 'Mlflow',
@@ -48,8 +50,8 @@ export class MlModelClass extends EntityClass {
   ];
 
   entity = {
-    name: `pw-mlmodel-${uuid()}`,
-    displayName: `pw-mlmodel-${uuid()}`,
+    name: this.mlModelName,
+    displayName: this.mlModelName,
     service: this.service.name,
     algorithm: 'Time Series',
     mlFeatures: this.children,
@@ -64,6 +66,7 @@ export class MlModelClass extends EntityClass {
     this.type = 'MlModel';
     this.childrenTabId = 'features';
     this.childrenSelectorId = `feature-card-${this.children[0].name}`;
+    this.serviceCategory = SERVICE_TYPE.MLModels;
   }
 
   async create(apiContext: APIRequestContext) {

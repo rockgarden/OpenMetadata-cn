@@ -12,7 +12,7 @@
  */
 
 import { SearchOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { Button, Typography } from 'antd';
 import i18next from 'i18next';
 import { isEmpty } from 'lodash';
 import React from 'react';
@@ -29,10 +29,7 @@ import { ReactComponent as IconMlModal } from '../assets/svg/mlmodal.svg';
 import { ReactComponent as IconPipeline } from '../assets/svg/pipeline-grey.svg';
 import { ReactComponent as IconTag } from '../assets/svg/tag-grey.svg';
 import { ReactComponent as IconTopic } from '../assets/svg/topic-grey.svg';
-import {
-  FQN_SEPARATOR_CHAR,
-  WILD_CARD_CHAR,
-} from '../constants/char.constants';
+import { WILD_CARD_CHAR } from '../constants/char.constants';
 import {
   Option,
   SearchSuggestions,
@@ -202,36 +199,19 @@ export const getGroupLabel = (index: string) => {
 
 export const getSuggestionElement = (
   suggestion: SearchSuggestions[number],
-  index: string,
   onClickHandler?: () => void
 ) => {
   const entitySource = suggestion as SearchSourceAlias;
   const { fullyQualifiedName: fqdn = '', name, serviceType = '' } = suggestion;
-  let database;
-  let schema;
-  if (index === SearchIndex.TABLE) {
-    database = getPartialNameFromTableFQN(fqdn, [FqnPart.Database]);
-    schema = getPartialNameFromTableFQN(fqdn, [FqnPart.Schema]);
-  }
-
   const entityLink = searchClassBase.getEntityLink(entitySource);
   const dataTestId = `${getPartialNameFromTableFQN(fqdn, [
     FqnPart.Service,
   ])}-${name}`.replaceAll(`"`, '');
 
-  let displayText =
-    database && schema
-      ? `${database}${FQN_SEPARATOR_CHAR}${schema}${FQN_SEPARATOR_CHAR}${name}`
-      : searchClassBase.getEntityName(entitySource);
+  const displayText = searchClassBase.getEntityName(entitySource);
+  const fqn = `(${entitySource.fullyQualifiedName ?? ''})`;
 
-  if (index === SearchIndex.GLOSSARY_TERM) {
-    // Show Fqn for Glossary Term. Adding this to avoid confusion for nested terms
-    displayText =
-      entitySource.fullyQualifiedName ??
-      searchClassBase.getEntityName(entitySource);
-  }
-
-  const retn = (
+  return (
     <Button
       block
       className="text-left truncate p-0"
@@ -248,18 +228,19 @@ export const getSuggestionElement = (
       key={fqdn}
       type="text">
       <Link
-        className="text-sm"
+        className="text-sm no-underline"
         data-testid="data-name"
         id={fqdn.replace(/\./g, '')}
         target={searchClassBase.getSearchEntityLinkTarget(entitySource)}
         to={entityLink}
         onClick={onClickHandler}>
         {displayText}
+        <Typography.Text className="m-l-xs text-xs" type="secondary">
+          {fqn}
+        </Typography.Text>
       </Link>
     </Button>
   );
-
-  return retn;
 };
 
 export const filterOptionsByIndex = (
