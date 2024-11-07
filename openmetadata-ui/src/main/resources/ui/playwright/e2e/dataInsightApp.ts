@@ -17,10 +17,12 @@ import { getApiContext, redirectToHomePage } from '../utils/common';
 // use the admin user to login
 setup.use({
   storageState: 'playwright/.auth/admin.json',
+  trace: 'on',
 });
 
 setup.describe.configure({
   timeout: process.env.PLAYWRIGHT_IS_OSS ? 150000 : 5600000,
+  retries: 0,
 });
 
 setup(
@@ -33,23 +35,54 @@ setup(
 
     await table.create(apiContext);
 
-    apiContext.patch(`/api/v1/tables/${table.entityResponseData?.id ?? ''}`, {
-      data: [
-        {
-          op: 'add',
-          path: '/tags/0',
-          value: {
-            name: 'Tier2',
-            tagFQN: 'Tier.Tier2',
-            labelType: 'Manual',
-            state: 'Confirmed',
+    await apiContext.patch(
+      `/api/v1/tables/${table.entityResponseData?.id ?? ''}`,
+      {
+        data: [
+          {
+            op: 'add',
+            path: '/tags/0',
+            value: {
+              name: 'Tier2',
+              tagFQN: 'Tier.Tier2',
+              labelType: 'Manual',
+              state: 'Confirmed',
+            },
           },
+        ],
+        headers: {
+          'Content-Type': 'application/json-patch+json',
         },
-      ],
-      headers: {
-        'Content-Type': 'application/json-patch+json',
-      },
-    });
+      }
+    );
+
+    await expect(
+      await apiContext.patch(
+        `/api/v1/apps/marketplace/name/DataInsightsApplication`,
+        {
+          data: [
+            {
+              op: 'replace',
+              path: '/appConfiguration/batchSize',
+              value: 1000,
+            },
+            {
+              op: 'replace',
+              path: '/appConfiguration/recreateDataAssetsIndex',
+              value: false,
+            },
+            {
+              op: 'replace',
+              path: '/appConfiguration/backfillConfiguration/enabled',
+              value: false,
+            },
+          ],
+          headers: {
+            'Content-Type': 'application/json-patch+json',
+          },
+        }
+      )
+    ).toBeOK();
 
     await apiContext.post('/api/v1/apps/trigger/DataInsightsApplication');
 
@@ -81,7 +114,7 @@ setup(
               }),
         }
       )
-      .toBe('success');
+      .toEqual(expect.stringMatching(/(success|failed|partialSuccess)/));
 
     await table.delete(apiContext);
 

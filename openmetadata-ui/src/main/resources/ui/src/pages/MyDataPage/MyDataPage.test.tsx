@@ -57,7 +57,7 @@ jest.mock(
 jest.mock('../../components/common/Loader/Loader', () => {
   return jest.fn().mockImplementation(() => <div>Loader</div>);
 });
-jest.mock('../../utils/CustomizePageClassBase', () => {
+jest.mock('../../utils/CustomizeMyDataPageClassBase', () => {
   return mockCustomizePageClassBase;
 });
 jest.mock('../../components/PageLayoutV1/PageLayoutV1', () => {
@@ -103,6 +103,14 @@ jest.mock('../../rest/feedsAPI', () => ({
     .fn()
     .mockImplementation(() => Promise.resolve(mockActiveAnnouncementData)),
 }));
+jest.mock('../../rest/userAPI', () => ({
+  getUserById: jest
+    .fn()
+    .mockImplementation(() => Promise.resolve(mockUserData)),
+}));
+jest.mock('../../hooks/useCustomLocation/useCustomLocation', () => {
+  return jest.fn().mockImplementation(() => ({ pathname: '' }));
+});
 jest.mock('../../rest/searchAPI', () => {
   return {
     searchQuery: jest
@@ -112,9 +120,6 @@ jest.mock('../../rest/searchAPI', () => {
       ),
   };
 });
-jest.mock('react-router-dom', () => ({
-  useLocation: jest.fn().mockImplementation(() => ({ pathname: '' })),
-}));
 jest.mock('react-grid-layout', () => ({
   ...jest.requireActual('react-grid-layout'),
   WidthProvider: jest

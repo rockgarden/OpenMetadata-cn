@@ -6,6 +6,7 @@ import static org.openmetadata.service.Entity.TEAM;
 import static org.openmetadata.service.apps.scheduler.AppScheduler.APP_NAME;
 import static org.openmetadata.service.util.SubscriptionUtil.getAdminsData;
 import static org.openmetadata.service.util.Utilities.getMonthAndDateFromEpoch;
+import static org.openmetadata.service.util.email.TemplateConstants.DATA_INSIGHT_REPORT_TEMPLATE;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -41,10 +42,10 @@ import org.openmetadata.service.jdbi3.KpiRepository;
 import org.openmetadata.service.jdbi3.ListFilter;
 import org.openmetadata.service.search.SearchClient;
 import org.openmetadata.service.search.SearchRepository;
-import org.openmetadata.service.util.EmailUtil;
 import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.ResultList;
 import org.openmetadata.service.util.Utilities;
+import org.openmetadata.service.util.email.EmailUtil;
 import org.openmetadata.service.workflows.searchIndex.PaginatedEntitiesSource;
 import org.quartz.JobExecutionContext;
 
@@ -142,7 +143,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
               ownershipTemplate,
               tierTemplate,
               EmailUtil.getDataInsightReportSubject(),
-              EmailUtil.DATA_INSIGHT_REPORT_TEMPLATE);
+              DATA_INSIGHT_REPORT_TEMPLATE);
         } catch (Exception ex) {
           LOG.error(
               "[DataInsightReport] Failed for Team: {}, Reason : {}",
@@ -177,7 +178,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
           ownershipTemplate,
           tierTemplate,
           EmailUtil.getDataInsightReportSubject(),
-          EmailUtil.DATA_INSIGHT_REPORT_TEMPLATE);
+          DATA_INSIGHT_REPORT_TEMPLATE);
     } catch (Exception ex) {
       LOG.error("[DataInsightReport] Failed for Admin, Reason : {}", ex.getMessage(), ex);
     }
@@ -217,7 +218,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
     dateWithCount.forEach((key, value) -> dateMap.put(key, value.intValue()));
     processDateMapToNormalize(dateMap);
 
-    int changeInTotalAssets = (int) (currentCount - previousCount);
+    int changeInTotalAssets = (int) Math.abs(currentCount - previousCount);
 
     if (previousCount == 0D) {
       // it should be undefined
@@ -275,7 +276,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
       currentPercentCompleted = (currentCompletedDescription / currentTotalAssetCount) * 100;
     }
 
-    int changeCount = (int) (currentCompletedDescription - previousCompletedDescription);
+    int changeCount = (int) Math.abs(currentCompletedDescription - previousCompletedDescription);
 
     return getTemplate(
         DataInsightDescriptionAndOwnerTemplate.MetricType.DESCRIPTION,
@@ -326,7 +327,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
       currentPercentCompleted = (currentHasOwner / currentTotalAssetCount) * 100;
     }
 
-    int changeCount = (int) (currentHasOwner - previousHasOwner);
+    int changeCount = (int) Math.abs(currentHasOwner - previousHasOwner);
 
     return getTemplate(
         DataInsightDescriptionAndOwnerTemplate.MetricType.OWNER,
@@ -375,7 +376,7 @@ public class DataInsightsReportApp extends AbstractNativeApplication {
       currentPercentCompleted = (currentHasTier / currentTotalAssetCount) * 100;
     }
 
-    int changeCount = (int) (currentHasTier - previousHasTier);
+    int changeCount = (int) Math.abs(currentHasTier - previousHasTier);
 
     // TODO: Understand if we actually use this tierData for anything.
     Map<String, Double> tierData = new HashMap<>();

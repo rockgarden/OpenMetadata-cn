@@ -3,47 +3,37 @@ site_menu:
   - category: Home
     url: /
 
-  - category: Enable Security
-    url: /security
-    color: violet-70
-    icon: deployment
-
-  - category: Enable Security / Basic Authentication
-    url: /security/basic-auth
-  - category: Enable Security / Ldap Authentication
-    url: /security/ldap
-  - category: Enable Security / Auth0 SSO
-    url: /security/auth0
-  - category: Enable Security / Azure SSO
-    url: /security/azure
-  - category: Enable Security / Custom OIDC SSO
-    url: /security/custom-oidc
-  - category: Enable Security / OIDC SSO
-    url: /security/oidc
-  - category: Enable Security / Google SSO
-    url: /security/google
-  - category: Enable Security / Okta SSO
-    url: /security/okta
-  - category: Enable Security / Amazon Cognito SSO
-    url: /security/amazon-cognito
-  - category: Enable Security / One Login SSO
-    url: /security/one-login
-  - category: Enable Security / Keycloak SSO
-    url: /security/keycloak
-  - category: Enable Security / Saml
-    url: /security/saml
-  - category: Enable Security / Saml / AWS
-    url: /security/saml/aws
-  - category: Enable Security / Saml / Azure
-    url: /security/saml/azure
+  - category: Getting Started
+    url: /getting-started
+  
+  - category: Getting Started / Day 1
+    url: /getting-started/day-1
+  - category: Getting Started / Day 1 / Collate SaaS
+    url: /getting-started/day-1/collate-saas
+  - category: Getting Started / Day 1 / Hybrid SaaS
+    url: /getting-started/day-1/hybrid-saas
+  - category: Getting Started / Day 1 / Hybrid SaaS / Airflow
+    url: /getting-started/day-1/hybrid-saas/airflow
+  - category: Getting Started / Day 1 / Hybrid SaaS / MWAA
+    url: /getting-started/day-1/hybrid-saas/mwaa
+  - category: Getting Started / Day 1 / Hybrid SaaS / GCS Composer
+    url: /getting-started/day-1/hybrid-saas/gcs-composer
+  - category: Getting Started / Day 1 / Hybrid SaaS / GitHub Actions
+    url: /getting-started/day-1/hybrid-saas/github-actions
+  - category: Getting Started / Day 1 / Hybrid SaaS / Credentials
+    url: /getting-started/day-1/hybrid-saas/credentials
 
   - category: Connectors
     url: /connectors
-    color: violet-70
-    icon: openmetadata
 
   - category: Connectors / Database
     url: /connectors/database
+  - category: Connectors / Database / ADLS Datalake
+    url: /connectors/database/adls-datalake
+  - category: Connectors / Database / ADLS Datalake / Run Externally
+    url: /connectors/database/adls-datalake/yaml
+  - category: Connectors / Database / ADLS Datalake / Troubleshooting
+    url: /connectors/database/adls-datalake/troubleshooting
   - category: Connectors / Database / Athena
     url: /connectors/database/athena
   - category: Connectors / Database / Athena / Run Externally
@@ -80,12 +70,6 @@ site_menu:
     url: /connectors/database/databricks/yaml
   - category: Connectors / Database / Databricks / Troubleshooting
     url: /connectors/database/databricks/troubleshooting
-  - category: Connectors / Database / Datalake
-    url: /connectors/database/datalake
-  - category: Connectors / Database / Datalake / Run Externally
-    url: /connectors/database/datalake/yaml
-  - category: Connectors / Database / Datalake / Troubleshooting
-    url: /connectors/database/datalake/troubleshooting
   - category: Connectors / Database / DB2
     url: /connectors/database/db2
   - category: Connectors / Database / DB2 / Run Externally
@@ -112,6 +96,10 @@ site_menu:
     url: /connectors/database/dynamodb
   - category: Connectors / Database / DynamoDB / Run Externally
     url: /connectors/database/dynamodb/yaml
+  - category: Connectors / Database / GCS Datalake
+    url: /connectors/database/gcs-datalake
+  - category: Connectors / Database / GCS Datalake / Run Externally
+    url: /connectors/database/gcs-datalake/yaml
   - category: Connectors / Database / Glue
     url: /connectors/database/glue
   - category: Connectors / Database / Glue / Run Externally
@@ -184,6 +172,12 @@ site_menu:
     url: /connectors/database/sap-hana
   - category: Connectors / Database / SAP Hana / Run Externally
     url: /connectors/database/sap-hana/yaml
+  - category: Connectors / Database / SAP ERP
+    url: /connectors/database/sap-erp
+  - category: Connectors / Database / SAP ERP / Run Externally
+    url: /connectors/database/sap-erp/yaml
+  - category: Connectors / Database / SAP ERP / Setup SAP ERP APIs
+    url: /connectors/database/sap-erp/setup-sap-apis
   - category: Connectors / Database / SAS
     url: /connectors/database/sas
   - category: Connectors / Database / SAS / Run Externally
@@ -206,6 +200,12 @@ site_menu:
     url: /connectors/database/synapse/yaml
   - category: Connectors / Database / Synapse / Troubleshooting
     url: /connectors/database/synapse/troubleshooting
+  - category: Connectors / Database / S3 Datalake
+    url: /connectors/database/s3-datalake
+  - category: Connectors / Database / S3 Datalake / Run Externally
+    url: /connectors/database/s3-datalake/yaml
+  - category: Connectors / Database / S3 Datalake / Troubleshooting
+    url: /connectors/database/s3-datalake/troubleshooting
   - category: Connectors / Database / Trino
     url: /connectors/database/trino
   - category: Connectors / Database / Trino / Run Externally
@@ -229,6 +229,10 @@ site_menu:
     url: /connectors/dashboard/domo-dashboard
   - category: Connectors / Dashboard / Domo Dashboard / Run Externally
     url: /connectors/dashboard/domo-dashboard/yaml
+  - category: Connectors / Dashboard / Lightdash
+    url: /connectors/dashboard/lightdash
+  - category: Connectors / Dashboard / Lightdash / Run Externally
+    url: /connectors/dashboard/lightdash/yaml
   - category: Connectors / Dashboard / Looker
     url: /connectors/dashboard/looker
   - category: Connectors / Dashboard / Looker / Run Externally
@@ -237,6 +241,10 @@ site_menu:
     url: /connectors/dashboard/metabase
   - category: Connectors / Dashboard / Metabase / Run Externally
     url: /connectors/dashboard/metabase/yaml
+  - category: Connectors / Dashboard / MicroStrategy
+    url: /connectors/dashboard/microstrategy
+  - category: Connectors / Dashboard / MicroStrategy / Run Externally
+    url: /connectors/dashboard/microstrategy/yaml
   - category: Connectors / Dashboard / Mode
     url: /connectors/dashboard/mode
   - category: Connectors / Dashboard / Mode / Run Externally
@@ -319,9 +327,9 @@ site_menu:
     url: /connectors/pipeline/dagster
   - category: Connectors / Pipeline / Dagster / Run Externally
     url: /connectors/pipeline/dagster/yaml
-  - category: Connectors / Pipeline / DBTCloud
+  - category: Connectors / Pipeline / dbt Cloud
     url: /connectors/pipeline/dbtcloud
-  - category: Connectors / Pipeline / DBTCloud / Run Externally
+  - category: Connectors / Pipeline / dbt Cloud / Run Externally
     url: /connectors/pipeline/dbtcloud/yaml
   - category: Connectors / Pipeline / KafkaConnect
     url: /connectors/pipeline/kafkaconnect
@@ -373,9 +381,9 @@ site_menu:
 
   - category: Connectors / Storage
     url: /connectors/storage
-  - category: Connectors / Storage / S3
+  - category: Connectors / Storage / S3 Storage
     url: /connectors/storage/s3
-  - category: Connectors / Storage / S3 / Run Externally
+  - category: Connectors / Storage / S3 Storage / Run Externally
     url: /connectors/storage/s3/yaml
   - category: Connectors / Storage / GCS
     url: /connectors/storage/gcs
@@ -500,8 +508,6 @@ site_menu:
 
   - category: How-to Guides
     url: /how-to-guides
-    color: violet-70
-    icon: openmetadata
 
   - category: How-to Guides / Admin Guide
     url: /how-to-guides/admin-guide
@@ -534,7 +540,13 @@ site_menu:
   - category: How-to Guides / Admin Guide / How to Add Custom Logo
     url: /how-to-guides/admin-guide/how-to-add-custom-logo
   - category: How-to Guides / Admin Guide / Reindexing Search
-    url: /how-to-guides/admin-guide/Reindexing-Search  
+    url: /how-to-guides/admin-guide/Reindexing-Search
+  - category: How-to Guides / Admin Guide / Persona and Landing Page Customization 
+    url: /how-to-guides/admin-guide/persona-landing-page-customization 
+  - category: How-to Guides / Admin Guide / Persona and Landing Page Customization / How to Customize a Landing Page
+    url: /how-to-guides/admin-guide/persona-landing-page-customization/customizable-landing-page
+  - category: How-to Guides / Admin Guide / Persona and Landing Page Customization / How to Define Personas
+    url: /how-to-guides/admin-guide/persona-landing-page-customization/defining-persona
 
   - category: How-to Guides / Guide for Data Users
     url: /how-to-guides/guide-for-data-users
@@ -581,6 +593,20 @@ site_menu:
     url: /how-to-guides/data-discovery/details
   - category: How-to Guides / Data Discovery / Add Complex Queries using Advanced Search
     url: /how-to-guides/data-discovery/advanced
+  - category: How-to Guides / Data Discovery / Bulk Upload Data Assets
+    url: /how-to-guides/data-discovery/bulk-upload
+  - category: How-to Guides / Data Discovery / How to Bulk Import Data Asset
+    url: /how-to-guides/data-discovery/import
+  - category: How-to Guides / Data Discovery / How to Export Data Asset
+    url: /how-to-guides/data-discovery/export
+  - category: How-to Guides / Data Discovery / OpenMetadata Chrome Extension
+    url: /how-to-guides/data-discovery/openmetadata-extension
+  - category: How-to Guides / Data Discovery / OpenMetadata Chrome Extension / Viewing Activity Feeds and Managing Tasks
+    url: /how-to-guides/data-discovery/openmetadata-extension/activity-feeds
+  - category: How-to Guides / Data Discovery / OpenMetadata Chrome Extension / Looking Up Data Assets and Accessing Details
+    url: /how-to-guides/data-discovery/openmetadata-extension/looking-up
+  - category: How-to Guides / Data Discovery / OpenMetadata Chrome Extension / Viewing tasks & add comment directly from the extension
+    url: /how-to-guides/data-discovery/openmetadata-extension/viewing-tasks
 
   - category: How-to Guides / Data Collaboration
     url: /how-to-guides/data-collaboration
@@ -678,6 +704,10 @@ site_menu:
 
   - category: How-to Guides / Data Governance
     url: /how-to-guides/data-governance
+  - category: How-to Guides / Data Governance / Automation
+    url: /how-to-guides/data-governance/automation
+  - category: How-to Guides / Data Governance / Automation / How to Set Up Automations in Collate 
+    url: /how-to-guides/data-governance/automation/set-up-automation
   - category: How-to Guides / Data Governance / Glossary
     url: /how-to-guides/data-governance/glossary
   - category: How-to Guides / Data Governance / Glossary / What is a Glossary Term
@@ -719,16 +749,82 @@ site_menu:
   - category: How-to Guides / Data Governance / Domains & Data Product /  How to Use Data Products
     url: /how-to-guides/data-governance/domains-&-data-products/data-products
 
+  - category: Enable Security
+    url: /security
+   
+  - category: Enable Security / Ldap Authentication
+    url: /security/ldap
+  - category: Enable Security / Auth0 SSO
+    url: /security/auth0
+  - category: Enable Security / Azure SSO
+    url: /security/azure
+  - category: Enable Security / Custom OIDC SSO
+    url: /security/custom-oidc
+  - category: Enable Security / OIDC SSO
+    url: /security/oidc
+  - category: Enable Security / Google SSO
+    url: /security/google
+  - category: Enable Security / Okta SSO
+    url: /security/okta
+  - category: Enable Security / Amazon Cognito SSO
+    url: /security/amazon-cognito
+  - category: Enable Security / One Login SSO
+    url: /security/one-login
+  - category: Enable Security / Keycloak SSO
+    url: /security/keycloak
+  - category: Enable Security / Saml
+    url: /security/saml
+  - category: Enable Security / Saml / AWS
+    url: /security/saml/aws
+  - category: Enable Security / Saml / Azure
+    url: /security/saml/azure
+   
   - category: Releases
     url: /releases
-    color: violet-70
-    icon: overview
   - category: Releases / Latest Release
     url: /releases/latest-release
   - category: Releases / Supported Releases
     url: /releases/supported
   - category: Releases / All Releases
     url: /releases/all-releases
+  - category: Releases / All Releases / 1.5.7 Release
+    url: /releases/all-releases/#1.5.7-release
+  - category: Releases / All Releases / 1.5.6 Release
+    url: /releases/all-releases/#1.5.6-release
+  - category: Releases / All Releases / 1.5.5 Release
+    url: /releases/all-releases/#1.5.5-release
+  - category: Releases / All Releases / 1.5.4 Release
+    url: /releases/all-releases/#1.5.4-release
+  - category: Releases / All Releases / 1.5.3 Release
+    url: /releases/all-releases/#1.5.3-release
+  - category: Releases / All Releases / 1.5.2 Release
+    url: /releases/all-releases/#1.5.2-release
+  - category: Releases / All Releases / 1.5.1 Release
+    url: /releases/all-releases/#1.5.1-release
+  - category: Releases / All Releases / 1.4.8 Release
+    url: /releases/all-releases/#1.4.8-release
+  - category: Releases / All Releases / 1.4.7 Release
+    url: /releases/all-releases/#1.4.7-release
+  - category: Releases / All Releases / 1.4.6 Release
+    url: /releases/all-releases/#1.4.6-release
+  - category: Releases / All Releases / 1.4.5 Release
+    url: /releases/all-releases/#1.4.5-release
+  - category: Releases / All Releases / 1.4.4 Release
+    url: /releases/all-releases/#1.4.4-release
+  - category: Releases / All Releases / 1.4.3 Release
+    url: /releases/all-releases/#1.4.3-release
+  - category: Releases / All Releases / 1.4.2 Release
+    url: /releases/all-releases/#1.4.2-release
+  - category: Releases / All Releases / 1.4.1 Release
+    url: /releases/all-releases/#1.4.1-release
+  - category: Releases / All Releases / 1.4.0 Release
+    url: /releases/all-releases/#1.4.0-release
+  - category: Releases / All Releases / 1.3.4 Release
+    url: /releases/all-releases/#1.3.4-release
+  - category: Releases / All Releases / 1.3.3 Release
+    url: /releases/all-releases/#1.3.3-release
+  - category: Releases / All Releases / 1.3.2 Release
+    url: /releases/all-releases/#1.3.2-release
   - category: Releases / All Releases / 1.3.1 Release
     url: /releases/all-releases/#1.3.1-release
   - category: Releases / All Releases / 1.3.0 Release
@@ -783,8 +879,6 @@ site_menu:
 
   - category: Main Concepts
     url: /main-concepts
-    color: violet-70
-    icon: main-concepts
   - category: Main Concepts / High Level Design
     url: /main-concepts/high-level-design
   - category: Main Concepts / Backend DB
@@ -1718,8 +1812,6 @@ site_menu:
 
   - category: SDK
     url: /sdk
-    color: violet-70
-    icon: sdk
   - category: SDK / Python SDK
     url: /sdk/python
   - category: SDK / Python SDK / Entities
@@ -1798,4 +1890,8 @@ site_menu:
     url: /sdk/java
   - category: SDK / Go
     url: /sdk/go
+  - category: Metapilot
+    url: /metapilot
+  - category: Metapilot / How to Use MetaPilot
+    url: /metapilot/how-to-use-metapilot
 ---

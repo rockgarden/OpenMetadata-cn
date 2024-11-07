@@ -51,7 +51,6 @@ import org.openmetadata.schema.api.VoteRequest;
 import org.openmetadata.schema.api.data.CreateDatabase;
 import org.openmetadata.schema.api.data.RestoreEntity;
 import org.openmetadata.schema.entity.data.Database;
-import org.openmetadata.schema.entity.data.Table;
 import org.openmetadata.schema.type.ChangeEvent;
 import org.openmetadata.schema.type.DatabaseProfilerConfig;
 import org.openmetadata.schema.type.EntityHistory;
@@ -66,6 +65,7 @@ import org.openmetadata.service.resources.Collection;
 import org.openmetadata.service.resources.EntityResource;
 import org.openmetadata.service.security.Authorizer;
 import org.openmetadata.service.security.policyevaluator.OperationContext;
+import org.openmetadata.service.util.CSVExportResponse;
 import org.openmetadata.service.util.ResultList;
 
 @Path("/v1/databases")
@@ -424,7 +424,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
 
   @GET
   @Path("/name/{name}/export")
-  @Produces(MediaType.TEXT_PLAIN)
+  @Produces(MediaType.APPLICATION_JSON)
   @Valid
   @Operation(
       operationId = "exportDatabase",
@@ -436,9 +436,9 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = String.class)))
+                    schema = @Schema(implementation = CSVExportResponse.class)))
       })
-  public String exportCsv(
+  public Response exportCsv(
       @Context SecurityContext securityContext,
       @Parameter(description = "Name of the Database", schema = @Schema(type = "string"))
           @PathParam("name")
@@ -566,7 +566,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
   @Operation(
       operationId = "addDataProfilerConfig",
       summary = "Add database profile config",
-      description = "Add database profile config to the table.",
+      description = "Add database profile config to the database.",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -574,7 +574,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Table.class)))
+                    schema = @Schema(implementation = Database.class)))
       })
   public Database addDataProfilerConfig(
       @Context UriInfo uriInfo,
@@ -595,7 +595,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
   @Operation(
       operationId = "getDataProfilerConfig",
       summary = "Get database profile config",
-      description = "Get database profile config to the table.",
+      description = "Get database profile config to the database.",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -603,7 +603,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Table.class)))
+                    schema = @Schema(implementation = Database.class)))
       })
   public Database getDataProfilerConfig(
       @Context UriInfo uriInfo,
@@ -633,7 +633,7 @@ public class DatabaseResource extends EntityResource<Database, DatabaseRepositor
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Table.class)))
+                    schema = @Schema(implementation = Database.class)))
       })
   public Database deleteDataProfilerConfig(
       @Context UriInfo uriInfo,

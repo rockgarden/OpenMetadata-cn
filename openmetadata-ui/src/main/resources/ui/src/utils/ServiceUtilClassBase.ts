@@ -11,7 +11,8 @@
  *  limitations under the License.
  */
 
-import { capitalize, toLower } from 'lodash';
+import { capitalize, get, toLower } from 'lodash';
+import MetricIcon from '../assets/svg/metric.svg';
 import {
   AIRBYTE,
   AIRFLOW,
@@ -40,6 +41,7 @@ import {
   DRUID,
   DYNAMODB,
   ELASTIC_SEARCH,
+  EXASOL,
   FIVETRAN,
   FLINK,
   GCS,
@@ -83,6 +85,7 @@ import {
   SAP_HANA,
   SAS,
   SCIKIT,
+  SIGMA,
   SINGLESTORE,
   SNOWFLAKE,
   SPARK,
@@ -98,6 +101,7 @@ import {
   VERTICA,
 } from '../constants/Services.constant';
 import { SearchSuggestions } from '../context/GlobalSearchProvider/GlobalSearchSuggestions/GlobalSearchSuggestions.interface';
+import { EntityType } from '../enums/entity.enum';
 import { ExplorePageTabs } from '../enums/Explore.enum';
 import {
   ApiServiceTypeSmallCaseType,
@@ -140,6 +144,7 @@ class ServiceUtilClassBase {
     MetadataServiceType.Alation,
     APIServiceType.Webhook,
     MlModelServiceType.VertexAI,
+    PipelineServiceType.Matillion,
   ];
 
   DatabaseServiceTypeSmallCase = this.convertEnumToLowerCase<
@@ -307,6 +312,9 @@ class ServiceUtilClassBase {
       case this.DatabaseServiceTypeSmallCase.DynamoDB:
         return DYNAMODB;
 
+      case this.DatabaseServiceTypeSmallCase.Exasol:
+        return EXASOL;
+
       case this.DatabaseServiceTypeSmallCase.SingleStore:
         return SINGLESTORE;
 
@@ -401,6 +409,9 @@ class ServiceUtilClassBase {
 
       case this.DashboardServiceTypeSmallCase.Lightdash:
         return LIGHT_DASH;
+
+      case this.DashboardServiceTypeSmallCase.Sigma:
+        return SIGMA;
 
       case this.PipelineServiceTypeSmallCase.CustomPipeline:
         return PIPELINE_DEFAULT;
@@ -519,7 +530,13 @@ class ServiceUtilClassBase {
   public getServiceTypeLogo(
     searchSource: SearchSuggestions[number] | SearchSourceAlias
   ) {
-    const type = searchSource?.serviceType ?? '';
+    const type = get(searchSource, 'serviceType', '');
+    const entityType = get(searchSource, 'entityType', '');
+
+    // metric entity does not have service so we need to handle it separately
+    if (entityType === EntityType.METRIC) {
+      return MetricIcon;
+    }
 
     return this.getServiceLogo(type);
   }

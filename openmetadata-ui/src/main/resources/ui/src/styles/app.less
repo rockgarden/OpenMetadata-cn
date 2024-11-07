@@ -262,6 +262,14 @@ a[href].link-text-grey,
   -webkit-box-orient: vertical;
 }
 
+.max-one-line {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
 .mx-auto {
   margin-right: auto;
   margin-left: auto;
@@ -559,6 +567,10 @@ a[href].link-text-grey,
   .ant-tabs-nav {
     margin: 0 !important;
     padding: 0 20px;
+
+    .ant-tabs-nav-wrap {
+      overflow: initial;
+    }
   }
 }
 .entity-tag-right-panel-container {
@@ -808,16 +820,21 @@ a[href].link-text-grey,
     // Right side padding 20 + 64 width of sidebar
     margin-right: 84px;
   }
-  .test-case-table-container {
+  .test-case-table-container,
+  .test-suite-pipeline-tab {
     margin-right: 64px;
   }
 
   .appearance-cta-buttons {
     padding-right: 64px;
   }
+  .activity-feed-editor-drawer,
   .policies-list-table,
   .roles-list-table,
-  .list-table {
+  .list-table,
+  .kpi-table,
+  .custom-properties-card,
+  .entity-custom-properties-table {
     margin-right: 64px;
   }
 }

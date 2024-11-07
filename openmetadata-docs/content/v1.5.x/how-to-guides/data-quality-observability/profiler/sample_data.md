@@ -33,7 +33,7 @@ You can configure the Sample Data Storage Credentials at Database Service level 
 You will provide the storage credential details in advance config section of connection details form.
 
 {% image
-  src="/images/v1.4/features/ingestion/workflows/profiler/sample-data-config-service.png"
+  src="/images/v1.5/features/ingestion/workflows/profiler/sample-data-config-service.png"
   alt="Database Service Storage Config"
   caption="Database Service Storage Config"
  /%}
@@ -44,14 +44,14 @@ You will provide the storage credential details in advance config section of con
 You can configure the Sample Data Storage Credentials at the Database level via the `Profiler Settings` option from the menu.
 
 {% image
-  src="/images/v1.4/features/ingestion/workflows/profiler/sample-data-config-database-1.png"
+  src="/images/v1.5/features/ingestion/workflows/profiler/sample-data-config-database-1.png"
   alt="Database Storage Config - 1"
   caption="Database Storage Config - 1"
  /%}
 
 
  {% image
-  src="/images/v1.4/features/ingestion/workflows/profiler/sample-data-config-database-2.png"
+  src="/images/v1.5/features/ingestion/workflows/profiler/sample-data-config-database-2.png"
   alt="Database Storage Config - 2"
   caption="Database Storage Config - 2"
  /%}
@@ -61,14 +61,14 @@ You can configure the Sample Data Storage Credentials at the Database level via 
 You can configure the Sample Data Storage Credentials at the Database Schema level via the `Profiler Settings` option from the menu.
 
 {% image
-  src="/images/v1.4/features/ingestion/workflows/profiler/sample-data-config-schema-1.png"
+  src="/images/v1.5/features/ingestion/workflows/profiler/sample-data-config-schema-1.png"
   alt="Database Schema Storage Config - 1"
   caption="Database Schema Storage Config - 1"
  /%}
 
 
  {% image
-  src="/images/v1.4/features/ingestion/workflows/profiler/sample-data-config-schema-2.png"
+  src="/images/v1.5/features/ingestion/workflows/profiler/sample-data-config-schema-2.png"
   alt="Database Schema Storage Config - 2"
   caption="Database Schema Storage Config - 2"
  /%}
@@ -89,6 +89,13 @@ The OpenMetadata UI will always show 50 or fewer rows of sample data. *Sample Da
 
 {% /note %}
 
+- **Sampling Method Type**: The sampling method type can be set to **BERNOULLI** or **SYSTEM**. You can find the difference of two values in the document of the Snowflake. When you choice **BERNOULLI**, it will scan full rows in the table even though small value is set at the **Profile Sample**. However, it has less restlictions than **SYSTEM**. If no option is choiced, the default is **BERNOULLI**.
+
+{% note %}
+
+This parameter is effective for Snowflake only. 
+
+{% /note %}
 
 - **Bucket Name**: A bucket name is a unique identifier used to organize and store data objects. It's similar to a folder name, but it's used for object storage rather than file storage.
 - **Prefix**: The prefix of a data source refers to the first part of the data path that identifies the source or origin of the data. The generated sample data parquet file will be uploaded to this prefix path in your bucket.

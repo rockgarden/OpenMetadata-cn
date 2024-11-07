@@ -7,8 +7,8 @@ slug: /connectors/database/glue
 name="Glue"
 stage="PROD"
 platform="OpenMetadata"
-availableFeatures=["Metadata", "dbt"]
-unavailableFeatures=["Query Usage", "Owners", "Tags", "Stored Procedures", "Data Profiler", "Data Quality", "Lineage", "Column-level Lineage"]
+availableFeatures=["Metadata", "dbt", "External Table Lineage"]
+unavailableFeatures=["Query Usage", "Owners", "Tags", "Stored Procedures", "Data Profiler", "Data Quality", "Column-level Lineage"]
 / %}
 
 
@@ -20,7 +20,7 @@ Configure and schedule Glue metadata and profiler workflows from the OpenMetadat
 - [Metadata Ingestion](#metadata-ingestion)
 - [dbt Integration](/connectors/ingestion/workflows/dbt)
 
-{% partial file="/v1.5/connectors/ingestion-modes-tiles.md" variables={yamlPath: "/connectors/database/athena/yaml"} /%}
+{% partial file="/v1.5/connectors/ingestion-modes-tiles.md" variables={yamlPath: "/connectors/database/glue/yaml"} /%}
 
 ## Requirements
 
