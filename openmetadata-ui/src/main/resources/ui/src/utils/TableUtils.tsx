@@ -21,7 +21,6 @@ import {
   isUndefined,
   lowerCase,
   omit,
-  reduce,
   toString,
   uniqBy,
   uniqueId,
@@ -89,7 +88,6 @@ import { TabProps } from '../components/common/TabsLabel/TabsLabel.interface';
 import TableProfiler from '../components/Database/Profiler/TableProfiler/TableProfiler';
 import SampleDataTableComponent from '../components/Database/SampleDataTable/SampleDataTable.component';
 import TableQueries from '../components/Database/TableQueries/TableQueries';
-import IncidentManager from '../components/IncidentManager/IncidentManager.component';
 import Lineage from '../components/Lineage/Lineage.component';
 import { SourceType } from '../components/SearchedData/SearchedData.interface';
 import { NON_SERVICE_TYPE_ASSETS } from '../constants/Assets.constants';
@@ -657,32 +655,34 @@ export const searchInFields = <T extends SearchIndexField | Column>(
   return searchedValue;
 };
 
-export const getUpdatedTags = <T extends TableFieldsInfoCommonEntities>(
-  newFieldTags: Array<EntityTags>,
-  field?: T
-): TagLabel[] => {
-  const prevTagsFqn = field?.tags?.map((tag) => tag.tagFQN);
+export const updateFieldTags = <T extends TableFieldsInfoCommonEntities>(
+  changedFieldFQN: string,
+  newFieldTags: EntityTags[],
+  searchIndexFields?: Array<T>
+) => {
+  searchIndexFields?.forEach((field) => {
+    if (field.fullyQualifiedName === changedFieldFQN) {
+      field.tags = getUpdatedTags(newFieldTags);
+    } else {
+      updateFieldTags(
+        changedFieldFQN,
+        newFieldTags,
+        field?.children as Array<T>
+      );
+    }
+  });
+};
 
-  return reduce(
-    newFieldTags,
-    (acc: Array<EntityTags>, cv: EntityTags) => {
-      if (prevTagsFqn?.includes(cv.tagFQN)) {
-        const prev = field?.tags?.find((tag) => tag.tagFQN === cv.tagFQN);
+export const getUpdatedTags = (newFieldTags: Array<EntityTags>): TagLabel[] => {
+  const mappedNewTags: TagLabel[] = newFieldTags.map((tag) => ({
+    ...omit(tag, 'isRemovable'),
+    labelType: LabelType.Manual,
+    state: State.Confirmed,
+    source: tag.source || 'Classification',
+    tagFQN: tag.tagFQN,
+  }));
 
-        return [...acc, prev];
-      } else {
-        return [
-          ...acc,
-          {
-            ...omit(cv, 'isRemovable'),
-            labelType: LabelType.Manual,
-            state: State.Confirmed,
-          },
-        ];
-      }
-    },
-    []
-  );
+  return mappedNewTags;
 };
 
 export const updateFieldDescription = <T extends TableFieldsInfoCommonEntities>(
@@ -697,24 +697,6 @@ export const updateFieldDescription = <T extends TableFieldsInfoCommonEntities>(
       updateFieldDescription(
         changedFieldFQN,
         description,
-        field?.children as Array<T>
-      );
-    }
-  });
-};
-
-export const updateFieldTags = <T extends TableFieldsInfoCommonEntities>(
-  changedFieldFQN: string,
-  newFieldTags: EntityTags[],
-  searchIndexFields?: Array<T>
-) => {
-  searchIndexFields?.forEach((field) => {
-    if (field.fullyQualifiedName === changedFieldFQN) {
-      field.tags = getUpdatedTags<T>(newFieldTags, field);
-    } else {
-      updateFieldTags(
-        changedFieldFQN,
-        newFieldTags,
         field?.children as Array<T>
       );
     }
@@ -814,7 +796,7 @@ export const getTableDetailPageBaseTabs = ({
       label: (
         <TabsLabel
           id={EntityTabs.PROFILER}
-          name={t('label.profiler-amp-data-quality')}
+          name={t('label.data-observability')}
         />
       ),
       key: EntityTabs.PROFILER,
@@ -827,26 +809,6 @@ export const getTableDetailPageBaseTabs = ({
             table={tableDetails}
             testCaseSummary={testCaseSummary}
           />
-        ),
-    },
-    {
-      label: (
-        <TabsLabel
-          id={EntityTabs.INCIDENTS}
-          name={t('label.incident-plural')}
-        />
-      ),
-      key: EntityTabs.INCIDENTS,
-      children:
-        tablePermissions.ViewAll || tablePermissions.ViewTests ? (
-          <div className="p-x-lg p-b-lg p-t-md">
-            <IncidentManager
-              isIncidentPage={false}
-              tableDetails={tableDetails}
-            />
-          </div>
-        ) : (
-          <ErrorPlaceHolder type={ERROR_PLACEHOLDER_TYPE.PERMISSION} />
         ),
     },
     {
