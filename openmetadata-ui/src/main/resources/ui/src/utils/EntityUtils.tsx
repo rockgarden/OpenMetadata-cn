@@ -11,7 +11,7 @@
  *  limitations under the License.
  */
 
-import { Popover } from 'antd';
+import { Popover, Space, Typography } from 'antd';
 import i18next, { t } from 'i18next';
 import {
   isEmpty,
@@ -21,18 +21,16 @@ import {
   lowerCase,
   startCase,
 } from 'lodash';
-import { Bucket, EntityDetailUnion } from 'Models';
+import { EntityDetailUnion } from 'Models';
+import QueryString from 'qs';
 import React, { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { OwnerLabel } from '../components/common/OwnerLabel/OwnerLabel.component';
 import QueryCount from '../components/common/QueryCount/QueryCount.component';
 import { TitleLink } from '../components/common/TitleBreadcrumb/TitleBreadcrumb.interface';
 import { DataAssetsWithoutServiceField } from '../components/DataAssets/DataAssetsHeader/DataAssetsHeader.interface';
+import { TableProfilerTab } from '../components/Database/Profiler/ProfilerDashboard/profilerDashboard.interface';
 import { QueryVoteType } from '../components/Database/TableQueries/TableQueries.interface';
-import {
-  LeafNodes,
-  LineagePos,
-} from '../components/Entity/EntityLineage/EntityLineage.interface';
 import {
   EntityServiceUnion,
   EntityUnion,
@@ -60,12 +58,9 @@ import {
   GlobalSettingsMenuCategory,
 } from '../constants/GlobalSettings.constants';
 import { TAG_START_WITH } from '../constants/Tag.constants';
-import { ResourceEntity } from '../context/PermissionProvider/PermissionProvider.interface';
 import { EntityTabs, EntityType, FqnPart } from '../enums/entity.enum';
 import { ExplorePageTabs } from '../enums/Explore.enum';
-import { SearchIndex } from '../enums/search.enum';
 import { ServiceCategory, ServiceCategoryPlural } from '../enums/service.enum';
-import { PrimaryTableDataTypes } from '../enums/table.enum';
 import { Kpi } from '../generated/dataInsight/kpi/kpi';
 import { Classification } from '../generated/entity/classification/classification';
 import { Tag } from '../generated/entity/classification/tag';
@@ -105,7 +100,6 @@ import {
   EventSubscription,
 } from '../generated/events/eventSubscription';
 import { TestCase, TestSuite } from '../generated/tests/testCase';
-import { Edge, EntityLineage } from '../generated/type/entityLineage';
 import { EntityReference } from '../generated/type/entityUsage';
 import { TagLabel } from '../generated/type/tagLabel';
 import { UsageDetails } from '../generated/type/usageDetails';
@@ -164,7 +158,20 @@ export const getEntityName = (entity?: {
   return entity?.displayName || entity?.name || '';
 };
 
-export const getEntityId = (entity?: { id?: string }) => entity?.id ?? '';
+export const getEntityLabel = (entity: {
+  displayName?: string;
+  name?: string;
+  fullyQualifiedName?: string;
+}): JSX.Element => (
+  <Space className="w-full whitespace-normal" direction="vertical" size={0}>
+    <Typography.Paragraph className="m-b-0">
+      {getEntityName(entity)}
+    </Typography.Paragraph>
+    <Typography.Paragraph className="text-grey-muted text-xs">
+      {entity?.fullyQualifiedName}
+    </Typography.Paragraph>
+  </Space>
+);
 
 export const getEntityTags = (
   type: string,
@@ -298,7 +305,7 @@ const getTableOverview = (
     domain,
   } = getTableFieldsFromTableDetails(tableDetails);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: i18next.t('label.type'),
@@ -385,11 +392,16 @@ const getTableOverview = (
       name: i18next.t('label.incident-plural'),
       value: additionalInfo?.incidentCount ?? 0,
       isLink: true,
-      url: getEntityDetailsPath(
-        EntityType.TABLE,
-        fullyQualifiedName ?? '',
-        EntityTabs.INCIDENTS
-      ),
+      linkProps: {
+        pathname: getEntityDetailsPath(
+          EntityType.TABLE,
+          fullyQualifiedName ?? '',
+          EntityTabs.PROFILER
+        ),
+        search: QueryString.stringify({
+          activeTab: TableProfilerTab.INCIDENTS,
+        }),
+      },
       visible: [
         DRAWER_NAVIGATION_OPTIONS.lineage,
         DRAWER_NAVIGATION_OPTIONS.explore,
@@ -411,7 +423,7 @@ const getTopicOverview = (topicDetails: Topic) => {
     messageSchema,
   } = topicDetails;
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ domain }, false),
     {
       name: i18next.t('label.partition-plural'),
@@ -478,7 +490,7 @@ const getPipelineOverview = (pipelineDetails: Pipeline) => {
   const tier = getTierTags(tags ?? []);
   const serviceDisplayName = getEntityName(service);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: `${i18next.t('label.pipeline')} ${i18next.t(
@@ -522,7 +534,7 @@ const getDashboardOverview = (dashboardDetails: Dashboard) => {
   const tier = getTierTags(tags ?? []);
   const serviceDisplayName = getEntityName(service);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: `${i18next.t('label.dashboard')} ${i18next.t(
@@ -575,7 +587,7 @@ export const getSearchIndexOverview = (
   const { owners, tags, service, domain } = searchIndexDetails;
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: i18next.t('label.tier'),
@@ -604,7 +616,7 @@ const getMlModelOverview = (mlModelDetails: Mlmodel) => {
   const { algorithm, target, server, dashboard, owners, domain } =
     mlModelDetails;
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: i18next.t('label.algorithm'),
@@ -665,7 +677,7 @@ const getContainerOverview = (containerDetails: Container) => {
     DRAWER_NAVIGATION_OPTIONS.explore,
   ];
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: i18next.t('label.object-plural'),
@@ -705,7 +717,7 @@ const getChartOverview = (chartDetails: Chart) => {
   } = chartDetails;
   const serviceDisplayName = getEntityName(service);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: `${i18next.t('label.chart')} ${i18next.t('label.url-uppercase')}`,
@@ -767,7 +779,7 @@ const getDataModelOverview = (dataModelDetails: DashboardDataModel) => {
   } = dataModelDetails;
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: `${i18next.t('label.data-model')} ${i18next.t(
@@ -837,7 +849,7 @@ const getStoredProcedureOverview = (
 
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ owners, domain }),
     {
       name: i18next.t('label.service'),
@@ -911,7 +923,7 @@ const getDatabaseOverview = (databaseDetails: Database) => {
 
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     {
       name: i18next.t('label.owner-plural'),
       value: <OwnerLabel hasPermission={false} owners={owners} />,
@@ -952,7 +964,7 @@ const getDatabaseSchemaOverview = (databaseSchemaDetails: DatabaseSchema) => {
 
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     {
       name: i18next.t('label.owner-plural'),
       value: <OwnerLabel hasPermission={false} owners={owners} />,
@@ -1001,7 +1013,7 @@ const getEntityServiceOverview = (serviceDetails: EntityServiceUnion) => {
 
   const tier = getTierTags(tags ?? []);
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     {
       name: i18next.t('label.owner-plural'),
       value: <OwnerLabel hasPermission={false} owners={owners} />,
@@ -1032,7 +1044,7 @@ const getApiCollectionOverview = (apiCollection: APICollection) => {
 
   const { service, domain } = apiCollection;
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ domain }, false),
     {
       name: i18next.t('label.endpoint-url'),
@@ -1062,7 +1074,7 @@ const getApiEndpointOverview = (apiEndpoint: APIEndpoint) => {
   }
   const { domain, service, apiCollection } = apiEndpoint;
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ domain }, false),
     {
       name: i18next.t('label.endpoint-url'),
@@ -1119,7 +1131,7 @@ const getMetricOverview = (metric: Metric) => {
     return [];
   }
 
-  const overview = [
+  const overview: BasicEntityOverviewInfo[] = [
     ...getCommonOverview({ domain: metric.domain }, false),
     {
       name: i18next.t('label.metric-type'),
@@ -1232,105 +1244,6 @@ export const getEntityOverview = (
   }
 };
 
-// Note: This method is enhanced from "getEntityCountByService" of ServiceUtils.ts
-export const getEntityCountByType = (buckets: Array<Bucket>) => {
-  const entityCounts = {
-    tableCount: 0,
-    topicCount: 0,
-    dashboardCount: 0,
-    pipelineCount: 0,
-  };
-  buckets?.forEach((bucket) => {
-    switch (bucket.key) {
-      case EntityType.TABLE:
-        entityCounts.tableCount += bucket.doc_count;
-
-        break;
-      case EntityType.TOPIC:
-        entityCounts.topicCount += bucket.doc_count;
-
-        break;
-      case EntityType.DASHBOARD:
-        entityCounts.dashboardCount += bucket.doc_count;
-
-        break;
-      case EntityType.PIPELINE:
-        entityCounts.pipelineCount += bucket.doc_count;
-
-        break;
-      default:
-        break;
-    }
-  });
-
-  return entityCounts;
-};
-
-export const getTotalEntityCountByType = (buckets: Array<Bucket> = []) => {
-  let entityCounts = 0;
-  buckets.forEach((bucket) => {
-    entityCounts += bucket.doc_count;
-  });
-
-  return entityCounts;
-};
-
-export const getEntityLineage = (
-  oldVal: EntityLineage,
-  newVal: EntityLineage,
-  pos: LineagePos
-) => {
-  if (pos === 'to') {
-    const downEdges = newVal.downstreamEdges;
-    const newNodes = newVal.nodes?.filter((n) =>
-      downEdges?.find((e) => e.toEntity === n.id)
-    );
-
-    return {
-      ...oldVal,
-      downstreamEdges: [
-        ...(oldVal.downstreamEdges as Edge[]),
-        ...(downEdges as Edge[]),
-      ],
-      nodes: [
-        ...(oldVal.nodes as EntityReference[]),
-        ...(newNodes as EntityReference[]),
-      ],
-    };
-  } else {
-    const upEdges = newVal.upstreamEdges;
-    const newNodes = newVal.nodes?.filter((n) =>
-      upEdges?.find((e) => e.fromEntity === n.id)
-    );
-
-    return {
-      ...oldVal,
-      upstreamEdges: [
-        ...(oldVal.upstreamEdges as Edge[]),
-        ...(upEdges as Edge[]),
-      ],
-      nodes: [
-        ...(oldVal.nodes as EntityReference[]),
-        ...(newNodes as EntityReference[]),
-      ],
-    };
-  }
-};
-
-export const isLeafNode = (
-  leafNodes: LeafNodes,
-  id: string,
-  pos: LineagePos
-) => {
-  if (!isEmpty(leafNodes)) {
-    return pos === 'from'
-      ? leafNodes.upStreamNode?.includes(id)
-      : leafNodes.downStreamNode?.includes(id);
-  } else {
-    return false;
-  }
-};
-
 export const ENTITY_LINK_SEPARATOR = '::';
 
 export const getEntityFeedLink = (
@@ -1355,46 +1268,8 @@ export const getEntityUserLink = (userName: string): string => {
   return `<#E${ENTITY_LINK_SEPARATOR}user${ENTITY_LINK_SEPARATOR}${userName}>`;
 };
 
-export const isSupportedTest = (dataType: string) => {
-  return dataType === 'ARRAY' || dataType === 'STRUCT';
-};
-
-export const isColumnTestSupported = (dataType: string) => {
-  const supportedType = Object.values(PrimaryTableDataTypes);
-
-  return supportedType.includes(
-    getDataTypeString(dataType) as PrimaryTableDataTypes
-  );
-};
-
 export const getTitleCase = (text?: string) => {
   return text ? startCase(text) : '';
-};
-
-export const getResourceEntityFromEntityType = (entityType: string) => {
-  switch (entityType) {
-    case EntityType.TABLE:
-    case SearchIndex.TABLE:
-      return ResourceEntity.TABLE;
-
-    case EntityType.TOPIC:
-    case SearchIndex.TOPIC:
-      return ResourceEntity.TOPIC;
-
-    case EntityType.DASHBOARD:
-    case SearchIndex.DASHBOARD:
-      return ResourceEntity.DASHBOARD;
-
-    case EntityType.PIPELINE:
-    case SearchIndex.PIPELINE:
-      return ResourceEntity.PIPELINE;
-
-    case EntityType.MLMODEL:
-    case SearchIndex.MLMODEL:
-      return ResourceEntity.ML_MODEL;
-  }
-
-  return ResourceEntity.ALL;
 };
 
 /**
@@ -1904,12 +1779,12 @@ export const getBreadcrumbForTestCase = (entity: TestCase): TitleLink[] => [
 ];
 
 export const getBreadcrumbForTestSuite = (entity: TestSuite) => {
-  return entity.executable
+  return entity.basic
     ? [
         {
-          name: getEntityName(entity.executableEntityReference),
+          name: getEntityName(entity.basicEntityReference),
           url: getEntityLinkFromType(
-            entity.executableEntityReference?.fullyQualifiedName ?? '',
+            entity.basicEntityReference?.fullyQualifiedName ?? '',
             EntityType.TABLE
           ),
         },
@@ -2479,6 +2354,9 @@ export const getEntityNameLabel = (entityName?: string) => {
     query: t('label.query'),
     THREAD: t('label.thread'),
     app: t('label.application'),
+    apiCollection: t('label.api-collection'),
+    apiEndpoint: t('label.api-endpoint'),
+    metric: t('label.metric'),
   };
 
   return (
@@ -2519,4 +2397,47 @@ export const getColumnSorter = <T, K extends keyof T>(field: K) => {
 
     return 0;
   };
+};
+
+export const highlightSearchText = (
+  text?: string,
+  searchText?: string
+): string => {
+  if (!searchText || !text) {
+    return text ?? '';
+  }
+
+  const regex = new RegExp(`(${searchText})`, 'gi');
+
+  return text.replace(
+    regex,
+    `<span data-highlight="true" class="text-highlighter">$1</span>`
+  );
+};
+
+/**
+ * It searches for a given text in a given string and returns an array that contains the string parts that have
+ * highlighted element if match found.
+ * @param text - The text to search in.
+ * @param searchText - The text to search for.
+ * @returns An Array of string or JSX.Element which contains highlighted element.
+ */
+export const highlightSearchArrayElement = (
+  text?: string,
+  searchText?: string
+): string | (string | JSX.Element)[] => {
+  if (!searchText || !text) {
+    return text ?? '';
+  }
+  const stringParts = text.split(new RegExp(`(${searchText})`, 'gi'));
+
+  return stringParts.map((part, index) =>
+    part.toLowerCase() === (searchText ?? '').toLowerCase() ? (
+      <span className="text-highlighter" key={`${part}-${index}`}>
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
 };

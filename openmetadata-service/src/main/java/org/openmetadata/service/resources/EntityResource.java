@@ -19,6 +19,7 @@ import static org.openmetadata.common.utils.CommonUtil.nullOrEmpty;
 import static org.openmetadata.schema.type.EventType.ENTITY_CREATED;
 import static org.openmetadata.schema.type.MetadataOperation.CREATE;
 import static org.openmetadata.schema.type.MetadataOperation.VIEW_BASIC;
+import static org.openmetadata.service.security.DefaultAuthorizer.getSubjectContext;
 import static org.openmetadata.service.util.EntityUtil.createOrUpdateOperation;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import javax.json.JsonPatch;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -42,6 +44,8 @@ import org.openmetadata.schema.type.EntityHistory;
 import org.openmetadata.schema.type.EntityReference;
 import org.openmetadata.schema.type.Include;
 import org.openmetadata.schema.type.MetadataOperation;
+import org.openmetadata.schema.type.Permission;
+import org.openmetadata.schema.type.ResourcePermission;
 import org.openmetadata.schema.type.api.BulkOperationResult;
 import org.openmetadata.schema.type.csv.CsvImportResult;
 import org.openmetadata.service.Entity;
@@ -52,11 +56,13 @@ import org.openmetadata.service.jdbi3.ListFilter;
 import org.openmetadata.service.limits.Limits;
 import org.openmetadata.service.search.SearchListFilter;
 import org.openmetadata.service.search.SearchSortFilter;
+import org.openmetadata.service.security.AuthorizationException;
 import org.openmetadata.service.security.Authorizer;
 import org.openmetadata.service.security.policyevaluator.CreateResourceContext;
 import org.openmetadata.service.security.policyevaluator.OperationContext;
 import org.openmetadata.service.security.policyevaluator.ResourceContext;
 import org.openmetadata.service.security.policyevaluator.ResourceContextInterface;
+import org.openmetadata.service.security.policyevaluator.SubjectContext;
 import org.openmetadata.service.util.AsyncService;
 import org.openmetadata.service.util.BulkAssetsOperationResponse;
 import org.openmetadata.service.util.CSVExportResponse;
@@ -138,7 +144,7 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
     Fields fields = getFields(fieldsParam);
     OperationContext listOperationContext =
         new OperationContext(entityType, getViewOperations(fields));
-
+    ResourceContext resourceContext = filter.getResourceContext(entityType);
     return listInternal(
         uriInfo,
         securityContext,
@@ -148,7 +154,7 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
         before,
         after,
         listOperationContext,
-        getResourceContext());
+        resourceContext);
   }
 
   public ResultList<T> listInternal(
@@ -165,7 +171,7 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
     authorizer.authorize(securityContext, operationContext, resourceContext);
 
     // Add Domain Filter
-    EntityUtil.addDomainQueryParam(securityContext, filter);
+    EntityUtil.addDomainQueryParam(securityContext, filter, entityType);
 
     // List
     ResultList<T> resultList;
@@ -355,7 +361,6 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
     authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
     DeleteResponse<T> response =
         repository.delete(securityContext.getUserPrincipal().getName(), id, recursive, hardDelete);
-    repository.deleteFromSearch(response.entity(), response.changeType());
     if (hardDelete) {
       limits.invalidateCache(entityType);
     }
@@ -374,7 +379,6 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
     DeleteResponse<T> response =
         repository.deleteByName(
             securityContext.getUserPrincipal().getName(), name, recursive, hardDelete);
-    repository.deleteFromSearch(response.entity(), response.changeType());
     addHref(uriInfo, response.entity());
     return response.toResponse();
   }
@@ -418,9 +422,37 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
 
   public Response bulkAddToAssetsAsync(
       SecurityContext securityContext, UUID entityId, BulkAssetsRequestInterface request) {
-    OperationContext operationContext =
-        new OperationContext(entityType, MetadataOperation.EDIT_ALL);
-    authorizer.authorize(securityContext, operationContext, getResourceContextById(entityId));
+    SubjectContext subjectContext = getSubjectContext(securityContext);
+    String user = subjectContext.user().getName();
+
+    Set<String> editPermissibleResources =
+        authorizer.listPermissions(securityContext, user).stream()
+            .filter(
+                permission ->
+                    permission.getPermissions().stream()
+                        .anyMatch(
+                            perm ->
+                                MetadataOperation.EDIT_TAGS.equals(perm.getOperation())
+                                    && Permission.Access.ALLOW.equals(perm.getAccess())))
+            .map(ResourcePermission::getResource)
+            .collect(Collectors.toSet());
+
+    // Validate if all entity types in the request are in the permissible resources
+    List<String> unauthorizedEntityTypes =
+        request.getAssets().stream()
+            .map(EntityReference::getType)
+            .filter(entityType -> !editPermissibleResources.contains(entityType))
+            .distinct()
+            .toList();
+
+    if (!unauthorizedEntityTypes.isEmpty()
+        && !subjectContext.isAdmin()
+        && !subjectContext.isBot()) {
+      throw new AuthorizationException(
+          CatalogExceptionMessage.resourcePermissionNotAllowed(
+              user, List.of(MetadataOperation.EDIT_TAGS), unauthorizedEntityTypes));
+    }
+
     String jobId = UUID.randomUUID().toString();
     ExecutorService executorService = AsyncService.getInstance().getExecutorService();
     executorService.submit(
@@ -443,9 +475,34 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
 
   public Response bulkRemoveFromAssetsAsync(
       SecurityContext securityContext, UUID entityId, BulkAssetsRequestInterface request) {
-    OperationContext operationContext =
-        new OperationContext(entityType, MetadataOperation.EDIT_ALL);
-    authorizer.authorize(securityContext, operationContext, getResourceContextById(entityId));
+    SubjectContext subjectContext = getSubjectContext(securityContext);
+    String user = subjectContext.user().getName();
+    Set<String> editPermissibleResources =
+        authorizer.listPermissions(securityContext, user).stream()
+            .filter(
+                permission ->
+                    permission.getPermissions().stream()
+                        .anyMatch(
+                            perm ->
+                                MetadataOperation.EDIT_TAGS.equals(perm.getOperation())
+                                    && Permission.Access.ALLOW.equals(perm.getAccess())))
+            .map(ResourcePermission::getResource)
+            .collect(Collectors.toSet());
+
+    List<String> unauthorizedEntityTypes =
+        request.getAssets().stream()
+            .map(EntityReference::getType)
+            .filter(entityType -> !editPermissibleResources.contains(entityType))
+            .distinct()
+            .toList();
+
+    if (!unauthorizedEntityTypes.isEmpty()
+        && !subjectContext.isAdmin()
+        && !subjectContext.isBot()) {
+      throw new AuthorizationException(
+          CatalogExceptionMessage.resourcePermissionNotAllowed(
+              user, List.of(MetadataOperation.EDIT_TAGS), unauthorizedEntityTypes));
+    }
     String jobId = UUID.randomUUID().toString();
     ExecutorService executorService = AsyncService.getInstance().getExecutorService();
     executorService.submit(
@@ -484,7 +541,7 @@ public abstract class EntityResource<T extends EntityInterface, K extends Entity
                 jobId, securityContext, e.getMessage());
           }
         });
-    CSVImportResponse response = new CSVImportResponse(jobId, "Import initiated successfully.");
+    CSVImportResponse response = new CSVImportResponse(jobId, "Import is in progress.");
     return Response.ok().entity(response).type(MediaType.APPLICATION_JSON).build();
   }
 

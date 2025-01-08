@@ -15,9 +15,7 @@ Base source for the data quality used to instantiate a data quality runner with 
 from copy import deepcopy
 from typing import Optional, cast
 
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeMeta
-
+from metadata.data_quality.builders.validator_builder import ValidatorBuilder
 from metadata.data_quality.interface.test_suite_interface import TestSuiteInterface
 from metadata.data_quality.runner.core import DataTestsRunner
 from metadata.generated.schema.entity.data.table import Table
@@ -31,10 +29,8 @@ from metadata.generated.schema.metadataIngestion.workflow import (
 )
 from metadata.generated.schema.type.entityReference import EntityReference
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
-from metadata.profiler.orm.converter.base import ometa_to_sqa_orm
 from metadata.sampler.models import SampleConfig
 from metadata.sampler.sampler_interface import SamplerInterface
-from metadata.utils.constants import NON_SQA_DATABASE_CONNECTIONS
 from metadata.utils.profiler_utils import get_context_entities
 from metadata.utils.service_spec.service_spec import (
     import_sampler_class,
@@ -50,11 +46,14 @@ class BaseTestSuiteRunner:
         config: OpenMetadataWorkflowConfig,
         ometa_client: OpenMetadata,
         entity: Table,
+        service_connection: DatabaseConnection,
     ):
+        self.validator_builder_class = ValidatorBuilder
         self._interface = None
-        self._interface_type: str = config.source.type.lower()
         self.entity = entity
-        self.service_conn_config = self._copy_service_config(config, self.entity.database)  # type: ignore
+        self.service_conn_config = self._copy_service_config(service_connection, self.entity.database)  # type: ignore
+        self._interface_type: str = self.service_conn_config.type.value.lower()
+
         self.source_config = TestSuitePipeline.model_validate(
             config.source.sourceConfig.config
         )
@@ -69,7 +68,7 @@ class BaseTestSuiteRunner:
         self._interface = interface
 
     def _copy_service_config(
-        self, config: OpenMetadataWorkflowConfig, database: EntityReference
+        self, service_connection: DatabaseConnection, database: EntityReference
     ) -> DatabaseConnection:
         """Make a copy of the service config and update the database name
 
@@ -79,9 +78,7 @@ class BaseTestSuiteRunner:
         Returns:
             DatabaseService.__config__
         """
-        config_copy = deepcopy(
-            config.source.serviceConnection.root.config  # type: ignore
-        )
+        config_copy = deepcopy(service_connection.config)  # type: ignore
         if hasattr(
             config_copy,  # type: ignore
             "supportsDatabase",
@@ -95,12 +92,6 @@ class BaseTestSuiteRunner:
         config_copy = cast(DatabaseConnection, config_copy)
 
         return config_copy
-
-    def _build_table_orm(self, entity: Table) -> Optional[DeclarativeMeta]:
-        """Build the ORM table if needed for the sampler and profiler interfaces"""
-        if self.service_conn_config.type.value not in NON_SQA_DATABASE_CONNECTIONS:
-            return ometa_to_sqa_orm(entity, self.ometa_client, MetaData())
-        return None
 
     def create_data_quality_interface(self) -> TestSuiteInterface:
         """Create data quality interface
@@ -122,7 +113,6 @@ class BaseTestSuiteRunner:
             source_config_type=self.service_conn_config.type.value,
         )
         # This is shared between the sampler and DQ interfaces
-        _orm = self._build_table_orm(self.entity)
         sampler_interface: SamplerInterface = sampler_class.create(
             service_connection_config=self.service_conn_config,
             ometa_client=self.ometa_client,
@@ -134,15 +124,14 @@ class BaseTestSuiteRunner:
                 profile_sample_type=self.source_config.profileSampleType,
                 sampling_method_type=self.source_config.samplingMethodType,
             ),
-            orm_table=_orm,
         )
 
         self.interface: TestSuiteInterface = test_suite_class.create(
-            self.service_conn_config,
-            self.ometa_client,
-            sampler_interface,
-            self.entity,
-            orm_table=_orm,
+            service_connection_config=self.service_conn_config,
+            ometa_client=self.ometa_client,
+            sampler=sampler_interface,
+            table_entity=self.entity,
+            validator_builder=self.validator_builder_class,
         )
         return self.interface
 

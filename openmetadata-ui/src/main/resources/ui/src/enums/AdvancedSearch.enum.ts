@@ -62,6 +62,7 @@ export enum EntityFields {
   DATABASE_DISPLAY_NAME = 'database.displayName',
   DATABASE_SCHEMA_DISPLAY_NAME = 'databaseSchema.displayName',
   COLUMN = 'columns.name.keyword',
+  API_COLLECTION = 'apiCollection.displayName.keyword',
   CHART = 'charts.displayName.keyword',
   TASK = 'tasks.displayName.keyword',
   GLOSSARY_TERM_STATUS = 'status',
@@ -82,4 +83,5 @@ export enum EntityReferenceFields {
   TAG = 'tags.tagFQN',
   TIER = 'tier.tagFQN',
   TABLE_TYPE = 'tableType',
+  EXTENSION = 'extension',
 }

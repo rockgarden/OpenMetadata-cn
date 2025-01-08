@@ -15,7 +15,6 @@ import static org.openmetadata.service.util.FullyQualifiedName.quoteName;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -128,10 +127,10 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
 
   @Override
   public void setInheritedFields(TestSuite testSuite, EntityUtil.Fields fields) {
-    if (Boolean.TRUE.equals(testSuite.getExecutable())) {
+    if (Boolean.TRUE.equals(testSuite.getBasic())) {
       Table table =
           Entity.getEntity(
-              TABLE, testSuite.getExecutableEntityReference().getId(), "owners,domain", ALL);
+              TABLE, testSuite.getBasicEntityReference().getId(), "owners,domain", ALL);
       inheritOwners(testSuite, fields, table);
       inheritDomain(testSuite, fields, table);
     }
@@ -146,10 +145,10 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
 
   @Override
   public void setFullyQualifiedName(TestSuite testSuite) {
-    if (testSuite.getExecutableEntityReference() != null) {
+    if (testSuite.getBasicEntityReference() != null) {
       testSuite.setFullyQualifiedName(
           FullyQualifiedName.add(
-              testSuite.getExecutableEntityReference().getFullyQualifiedName(), "testSuite"));
+              testSuite.getBasicEntityReference().getFullyQualifiedName(), "testSuite"));
     } else {
       testSuite.setFullyQualifiedName(quoteName(testSuite.getName()));
     }
@@ -228,39 +227,52 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
   }
 
   public TestSummary getTestSummary(List<ResultSummary> testCaseResults) {
-    Map<String, Map<String, Integer>> summaries =
+    record ProcessedTestCaseResults(String entityLink, String status) {}
+
+    List<ProcessedTestCaseResults> processedTestCaseResults =
         testCaseResults.stream()
+            .map(
+                result -> {
+                  TestCase testCase =
+                      Entity.getEntityByName(TEST_CASE, result.getTestCaseName(), "", ALL);
+                  MessageParser.EntityLink entityLink =
+                      MessageParser.EntityLink.parse(testCase.getEntityLink());
+                  String linkString =
+                      entityLink.getFieldName() == null ? "table" : entityLink.getLinkString();
+                  return new ProcessedTestCaseResults(linkString, result.getStatus().toString());
+                })
+            .toList();
+
+    Map<String, Map<String, Integer>> summaries =
+        processedTestCaseResults.stream()
             .collect(
                 Collectors.groupingBy(
-                    result -> {
-                      TestCase testCase =
-                          Entity.getEntityByName(TEST_CASE, result.getTestCaseName(), "", ALL);
-                      MessageParser.EntityLink entityLink =
-                          MessageParser.EntityLink.parse(testCase.getEntityLink());
-                      return entityLink.getFieldName() == null
-                          ? "table"
-                          : entityLink.getLinkString();
-                    },
+                    ProcessedTestCaseResults::entityLink,
                     Collectors.groupingBy(
-                        result -> result.getStatus().toString(),
+                        ProcessedTestCaseResults::status,
                         Collectors.collectingAndThen(Collectors.counting(), Long::intValue))));
 
-    Map<String, Integer> testSummaryMap = summaries.getOrDefault("table", new HashMap<>());
-    TestSummary testSummary = createTestSummary(testSummaryMap);
-    testSummary.setTotal(testCaseResults.size());
+    Map<String, Integer> testSummaryMap =
+        processedTestCaseResults.stream()
+            .collect(
+                Collectors.groupingBy(
+                    result -> result.status,
+                    Collectors.collectingAndThen(Collectors.counting(), Long::intValue)));
 
     List<ColumnTestSummaryDefinition> columnTestSummaryDefinitions =
         summaries.entrySet().stream()
             .filter(entry -> !entry.getKey().equals("table"))
             .map(
                 entry -> {
-                  Map<String, Integer> columnSummaryMap = entry.getValue();
                   ColumnTestSummaryDefinition columnTestSummaryDefinition =
-                      createColumnSummary(columnSummaryMap);
+                      createColumnSummary(entry.getValue());
                   columnTestSummaryDefinition.setEntityLink(entry.getKey());
                   return columnTestSummaryDefinition;
                 })
             .toList();
+
+    TestSummary testSummary = createTestSummary(testSummaryMap);
+    testSummary.setTotal(testCaseResults.size());
     testSummary.setColumnTestSummary(columnTestSummaryDefinitions);
     return testSummary;
   }
@@ -316,22 +328,21 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
   @Override
   protected void postCreate(TestSuite entity) {
     super.postCreate(entity);
-    if (Boolean.TRUE.equals(entity.getExecutable())
-        && entity.getExecutableEntityReference() != null) {
+    if (Boolean.TRUE.equals(entity.getBasic()) && entity.getBasicEntityReference() != null) {
       // Update table index with test suite field
       EntityInterface entityInterface =
-          getEntity(entity.getExecutableEntityReference(), "testSuite", ALL);
+          getEntity(entity.getBasicEntityReference(), "testSuite", ALL);
       IndexMapping indexMapping =
-          searchRepository.getIndexMapping(entity.getExecutableEntityReference().getType());
+          searchRepository.getIndexMapping(entity.getBasicEntityReference().getType());
       SearchClient searchClient = searchRepository.getSearchClient();
       SearchIndex index =
           searchRepository
               .getSearchIndexFactory()
-              .buildIndex(entity.getExecutableEntityReference().getType(), entityInterface);
+              .buildIndex(entity.getBasicEntityReference().getType(), entityInterface);
       Map<String, Object> doc = index.buildSearchIndexDoc();
       searchClient.updateEntity(
           indexMapping.getIndexName(searchRepository.getClusterAlias()),
-          entity.getExecutableEntityReference().getId().toString(),
+          entity.getBasicEntityReference().getId().toString(),
           doc,
           "ctx._source.testSuite = params.testSuite;");
     }
@@ -401,7 +412,7 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
 
   @Override
   public void storeRelationships(TestSuite entity) {
-    if (Boolean.TRUE.equals(entity.getExecutable())) {
+    if (Boolean.TRUE.equals(entity.getBasic())) {
       storeExecutableRelationship(entity);
     }
   }
@@ -409,10 +420,7 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
   public void storeExecutableRelationship(TestSuite testSuite) {
     Table table =
         Entity.getEntityByName(
-            Entity.TABLE,
-            testSuite.getExecutableEntityReference().getFullyQualifiedName(),
-            null,
-            null);
+            Entity.TABLE, testSuite.getBasicEntityReference().getFullyQualifiedName(), null, null);
     addRelationship(
         table.getId(), testSuite.getId(), Entity.TABLE, TEST_SUITE, Relationship.CONTAINS);
   }
@@ -480,8 +488,8 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
         .withHref(testSuite.getHref())
         .withId(testSuite.getId())
         .withName(testSuite.getName())
-        .withExecutable(testSuite.getExecutable())
-        .withExecutableEntityReference(testSuite.getExecutableEntityReference())
+        .withBasic(testSuite.getBasic())
+        .withBasicEntityReference(testSuite.getBasicEntityReference())
         .withServiceType(testSuite.getServiceType())
         .withOwners(testSuite.getOwners())
         .withUpdatedBy(testSuite.getUpdatedBy())
@@ -496,7 +504,7 @@ public class TestSuiteRepository extends EntityRepository<TestSuite> {
 
     @Transaction
     @Override
-    public void entitySpecificUpdate() {
+    public void entitySpecificUpdate(boolean consolidatingChanges) {
       List<EntityReference> origTests = listOrEmpty(original.getTests());
       List<EntityReference> updatedTests = listOrEmpty(updated.getTests());
       List<ResultSummary> origTestCaseResultSummary =
