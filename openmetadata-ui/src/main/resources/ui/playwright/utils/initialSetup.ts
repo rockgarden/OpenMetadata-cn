@@ -13,6 +13,7 @@
 import { Page } from '@playwright/test';
 import { JWT_EXPIRY_TIME_MAP } from '../constant/login';
 import { AdminClass } from '../support/user/AdminClass';
+import { enableDisableAutoPilotApplication } from './applications';
 import { getApiContext } from './common';
 import { updateJWTTokenExpiryTime } from './login';
 import {
@@ -32,6 +33,11 @@ const initialSetup = async (page: Page) => {
   // update default Data consumer policy
   await updateDefaultDataConsumerPolicy(apiContext);
 
+  if (process.env.PLAYWRIGHT_IN_NIGHTLY) {
+    // disable the AutoPilot application
+    await enableDisableAutoPilotApplication(apiContext, false);
+  }
+
   await afterAction();
 };
 
@@ -42,5 +48,9 @@ export const loginAsAdmin = async (page: Page, admin: AdminClass) => {
   await admin.logout(page);
   await page.waitForURL('**/signin');
   await admin.login(page);
+
+  // Close the leftside bar to run tests smoothly
+  await page.getByTestId('sidebar-toggle').click();
+
   await page.waitForURL('**/my-data');
 };

@@ -12,12 +12,13 @@
  */
 import { Form, Modal, Typography } from 'antd';
 import { isUndefined, uniq } from 'lodash';
-import React, { FC, useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ENTITY_REFERENCE_OPTIONS,
   PROPERTY_TYPES_WITH_ENTITY_REFERENCE,
 } from '../../../../constants/CustomProperty.constants';
+import { EntityType } from '../../../../enums/entity.enum';
 import {
   Config,
   CustomProperty,
@@ -29,6 +30,7 @@ import {
 } from '../../../../interface/FormUtils.interface';
 import { generateFormFields } from '../../../../utils/formUtils';
 import Banner from '../../../common/Banner/Banner';
+import { EntityAttachmentProvider } from '../../../common/EntityDescription/EntityAttachmentProvider/EntityAttachmentProvider';
 
 export interface FormData {
   description: string;
@@ -230,7 +232,11 @@ const EditCustomPropertyModal: FC<EditCustomPropertyModalProps> = ({
         initialValues={initialValues}
         layout="vertical"
         onFinish={handleSubmit}>
-        {generateFormFields(formFields)}
+        <EntityAttachmentProvider
+          entityFqn={customProperty?.name}
+          entityType={EntityType.TYPE}>
+          {generateFormFields(formFields)}
+        </EntityAttachmentProvider>
         {!isUndefined(customProperty.customPropertyConfig) && (
           <>
             {hasEnumConfig && (

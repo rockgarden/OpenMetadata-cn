@@ -34,6 +34,10 @@ export interface TestSuite {
      */
     connection?: TestSuiteConnection;
     /**
+     * Reference to the data contract that this test suite is associated with.
+     */
+    dataContract?: EntityReference;
+    /**
      * When `true` indicates the entity has been soft deleted.
      */
     deleted?: boolean;
@@ -46,10 +50,18 @@ export interface TestSuite {
      */
     displayName?: string;
     /**
-     * Domain the test Suite belongs to. When not set, the test Suite inherits the domain from
+     * Domains the test Suite belongs to. When not set, the test Suite inherits the domain from
      * the table it belongs to.
      */
-    domain?: EntityReference;
+    domains?: EntityReference[];
+    /**
+     * DEPRECATED in 1.6.2: Use 'basic'
+     */
+    executable?: boolean;
+    /**
+     * DEPRECATED in 1.6.2: Use 'basicEntityReference'.
+     */
+    executableEntityReference?: EntityReference;
     /**
      * FullyQualifiedName same as `name`.
      */
@@ -62,6 +74,10 @@ export interface TestSuite {
      * Unique identifier of this test suite instance.
      */
     id?: string;
+    /**
+     * Change that lead to this version of the entity.
+     */
+    incrementalChangeDescription?: ChangeDescription;
     /**
      * Indicates if the test suite is inherited from a parent entity.
      */
@@ -124,15 +140,17 @@ export interface TestSuite {
  * example, a table has an attribute called database of type EntityReference that captures
  * the relationship of a table `belongs to a` database.
  *
- * Domain the test Suite belongs to. When not set, the test Suite inherits the domain from
- * the table it belongs to.
+ * Reference to the data contract that this test suite is associated with.
  *
- * Owners of this TestCase definition.
+ * Domains the test Suite belongs to. When not set, the test Suite inherits the domain from
+ * the table it belongs to.
  *
  * This schema defines the EntityReferenceList type used for referencing an entity.
  * EntityReference is used for capturing relationships from one entity to another. For
  * example, a table has an attribute called database of type EntityReference that captures
  * the relationship of a table `belongs to a` database.
+ *
+ * DEPRECATED in 1.6.2: Use 'basicEntityReference'.
  */
 export interface EntityReference {
     /**
@@ -183,6 +201,7 @@ export interface EntityReference {
  * Description of the change.
  */
 export interface ChangeDescription {
+    changeSummary?: { [key: string]: ChangeSummary };
     /**
      * Names of fields added during the version changes.
      */
@@ -199,6 +218,29 @@ export interface ChangeDescription {
      * When a change did not result in change, this could be same as the current version.
      */
     previousVersion?: number;
+}
+
+export interface ChangeSummary {
+    changedAt?: number;
+    /**
+     * Name of the user or bot who made this change
+     */
+    changedBy?:    string;
+    changeSource?: ChangeSource;
+    [property: string]: any;
+}
+
+/**
+ * The source of the change. This will change based on the context of the change (example:
+ * manual vs programmatic)
+ */
+export enum ChangeSource {
+    Automated = "Automated",
+    Derived = "Derived",
+    Ingested = "Ingested",
+    Manual = "Manual",
+    Propagated = "Propagated",
+    Suggested = "Suggested",
 }
 
 export interface FieldChange {
@@ -342,6 +384,7 @@ export interface TagLabel {
 export enum LabelType {
     Automated = "Automated",
     Derived = "Derived",
+    Generated = "Generated",
     Manual = "Manual",
     Propagated = "Propagated",
 }

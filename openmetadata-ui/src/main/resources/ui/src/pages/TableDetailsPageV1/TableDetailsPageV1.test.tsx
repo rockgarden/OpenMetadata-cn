@@ -11,7 +11,7 @@
  *  limitations under the License.
  */
 import { act, render, screen } from '@testing-library/react';
-import React from 'react';
+import { GenericTab } from '../../components/Customization/GenericTab/GenericTab';
 import { usePermissionProvider } from '../../context/PermissionProvider/PermissionProvider';
 import { TableType } from '../../generated/entity/data/table';
 import { getTableDetailsByFQN } from '../../rest/tableAPI';
@@ -23,7 +23,7 @@ const mockEntityPermissionByFqn = jest
   .mockImplementation(() => DEFAULT_ENTITY_PERMISSION);
 
 const COMMON_API_FIELDS =
-  'columns,followers,joins,tags,owners,dataModel,tableConstraints,schemaDefinition,domain,dataProducts,votes,extension';
+  'followers,joins,tags,owners,dataModel,tableConstraints,schemaDefinition,domains,dataProducts,votes,extension';
 
 jest.mock('../../context/PermissionProvider/PermissionProvider', () => ({
   usePermissionProvider: jest.fn().mockImplementation(() => ({
@@ -115,10 +115,6 @@ jest.mock(
   }
 );
 
-jest.mock('../../components/Database/SchemaTab/SchemaTab.component', () => {
-  return jest.fn().mockImplementation(() => <p>testSchemaTab</p>);
-});
-
 jest.mock(
   '../../components/Database/Profiler/TableProfiler/TableProfiler',
   () => {
@@ -186,7 +182,7 @@ jest.mock('react-router-dom', () => ({
   useParams: jest
     .fn()
     .mockImplementation(() => ({ fqn: 'fqn', tab: 'schema' })),
-  useHistory: jest.fn().mockImplementation(() => ({})),
+  useNavigate: jest.fn().mockImplementation(() => jest.fn()),
 }));
 
 jest.mock('../../context/TourProvider/TourProvider', () => ({
@@ -208,6 +204,14 @@ jest.mock('../../hoc/LimitWrapper', () => {
     .fn()
     .mockImplementation(({ children }) => <>LimitWrapper{children}</>);
 });
+
+jest.mock('../../components/Customization/GenericTab/GenericTab', () => ({
+  GenericTab: jest.fn().mockImplementation(() => <>GenericTab</>),
+}));
+
+jest.mock('../../utils/TableColumn.util', () => ({
+  ownerTableObject: jest.fn().mockReturnValue({}),
+}));
 
 describe('TestDetailsPageV1 component', () => {
   it('TableDetailsPageV1 should fetch permissions', () => {
@@ -272,7 +276,7 @@ describe('TestDetailsPageV1 component', () => {
     });
 
     expect(await screen.findByText('testDataAssetsHeader')).toBeInTheDocument();
-    expect(await screen.findByText('label.schema')).toBeInTheDocument();
+    expect(await screen.findByText('label.column-plural')).toBeInTheDocument();
     expect(
       await screen.findByText('label.activity-feed-and-task-plural')
     ).toBeInTheDocument();
@@ -426,6 +430,7 @@ describe('TestDetailsPageV1 component', () => {
       fields: COMMON_API_FIELDS,
     });
 
-    expect(await screen.findByText('testSchemaTab')).toBeInTheDocument();
+    expect(await screen.findByText('GenericTab')).toBeInTheDocument();
+    expect(GenericTab).toHaveBeenCalledWith({ type: 'Table' }, {});
   });
 });

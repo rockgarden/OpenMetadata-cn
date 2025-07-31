@@ -16,7 +16,6 @@ import {
   Button,
   Card,
   Col,
-  DatePicker,
   Form,
   Input,
   Row,
@@ -28,7 +27,6 @@ import {
 } from 'antd';
 import { AxiosError } from 'axios';
 import classNames from 'classnames';
-import { t } from 'i18next';
 import {
   isArray,
   isEmpty,
@@ -37,17 +35,11 @@ import {
   noop,
   omitBy,
   toNumber,
-  toUpper,
 } from 'lodash';
+import { DateTime } from 'luxon';
 import moment, { Moment } from 'moment';
-import React, {
-  CSSProperties,
-  FC,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ReactComponent as ArrowIconComponent } from '../../../assets/svg/drop-down.svg';
 import { ReactComponent as EditIconComponent } from '../../../assets/svg/edit-new.svg';
@@ -65,6 +57,7 @@ import { CSMode } from '../../../enums/codemirror.enum';
 import { SearchIndex } from '../../../enums/search.enum';
 import { EntityReference } from '../../../generated/entity/type';
 import { Config } from '../../../generated/type/customProperty';
+import { getCustomPropertyMomentFormat } from '../../../utils/CustomProperty.utils';
 import { calculateInterval } from '../../../utils/date-time/DateTimeUtils';
 import entityUtilClassBase from '../../../utils/EntityUtilClassBase';
 import { getEntityName } from '../../../utils/EntityUtils';
@@ -74,6 +67,7 @@ import DataAssetAsyncSelectList from '../../DataAssets/DataAssetAsyncSelectList/
 import { DataAssetOption } from '../../DataAssets/DataAssetAsyncSelectList/DataAssetAsyncSelectList.interface';
 import SchemaEditor from '../../Database/SchemaEditor/SchemaEditor';
 import { ModalWithMarkdownEditor } from '../../Modals/ModalWithMarkdownEditor/ModalWithMarkdownEditor';
+import DatePicker from '../DatePicker/DatePicker';
 import InlineEdit from '../InlineEdit/InlineEdit.component';
 import ProfilePicture from '../ProfilePicture/ProfilePicture';
 import RichTextEditorPreviewerV1 from '../RichTextEditor/RichTextEditorPreviewerV1';
@@ -111,6 +105,7 @@ export const PropertyValue: FC<PropertyValueProps> = ({
     };
   }, [property, extension]);
 
+  const { t } = useTranslation();
   const [showInput, setShowInput] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -219,7 +214,7 @@ export const PropertyValue: FC<PropertyValueProps> = ({
           <ModalWithMarkdownEditor
             header={header}
             placeholder={t('label.enter-property-value')}
-            value={value || ''}
+            value={value ?? ''}
             visible={showInput}
             onCancel={onHideInput}
             onSave={onInputSave}
@@ -278,13 +273,13 @@ export const PropertyValue: FC<PropertyValueProps> = ({
 
       case 'date-cp':
       case 'dateTime-cp': {
-        // Default format is 'yyyy-mm-dd'
-        const format = toUpper(
-          (property.customPropertyConfig?.config as string) ?? 'yyyy-mm-dd'
+        const format = getCustomPropertyMomentFormat(
+          propertyType.name,
+          property.customPropertyConfig?.config
         );
 
         const initialValues = {
-          dateTimeValue: value ? moment(value, format) : undefined,
+          dateTimeValue: value ? DateTime.fromFormat(value, format) : undefined,
         };
 
         const formId = `dateTime-form-${propertyName}`;
@@ -304,10 +299,10 @@ export const PropertyValue: FC<PropertyValueProps> = ({
               id={formId}
               initialValues={initialValues}
               layout="vertical"
-              onFinish={(values: { dateTimeValue: Moment }) => {
+              onFinish={(values: { dateTimeValue: DateTime }) => {
                 onInputSave(
                   values.dateTimeValue
-                    ? values.dateTimeValue.format(format)
+                    ? values.dateTimeValue.toFormat(format)
                     : values.dateTimeValue // If date is cleared and set undefined
                 );
               }}>
@@ -327,8 +322,11 @@ export const PropertyValue: FC<PropertyValueProps> = ({
       }
 
       case 'time-cp': {
-        const format =
-          (property.customPropertyConfig?.config as string) ?? 'HH:mm:ss';
+        const format = getCustomPropertyMomentFormat(
+          propertyType.name,
+          property.customPropertyConfig?.config
+        );
+
         const initialValues = {
           time: value ? moment(value, format) : undefined,
         };
@@ -763,7 +761,7 @@ export const PropertyValue: FC<PropertyValueProps> = ({
     }
     switch (propertyType.name) {
       case 'markdown':
-        return <RichTextEditorPreviewerV1 markdown={value || ''} />;
+        return <RichTextEditorPreviewerV1 markdown={value ?? ''} />;
 
       case 'enum':
         return (
@@ -1027,21 +1025,17 @@ export const PropertyValue: FC<PropertyValueProps> = ({
                     isRenderedInRightPanel ? '-right-panel' : ''
                   }`}
                   style={{ color: DE_ACTIVE_COLOR, ...ICON_DIMENSION }}
+                  tabIndex={0}
                   onClick={onShowInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      onShowInput();
+                    }
+                  }}
                 />
               </Tooltip>
             )}
           </Col>
-          {!isRenderedInRightPanel && (
-            <Col span={24}>
-              <RichTextEditorPreviewerV1
-                className="text-grey-muted property-description"
-                markdown={property.description || ''}
-                maxLength={70}
-                reducePreviewLineClass="max-one-line"
-              />
-            </Col>
-          )}
         </Row>
       </Col>
 
@@ -1073,7 +1067,13 @@ export const PropertyValue: FC<PropertyValueProps> = ({
               component={ArrowIconComponent}
               data-testid={`toggle-${propertyName}`}
               style={{ color: DE_ACTIVE_COLOR, ...ICON_DIMENSION }}
+              tabIndex={0}
               onClick={toggleExpand}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  toggleExpand();
+                }
+              }}
             />
           )}
         </div>

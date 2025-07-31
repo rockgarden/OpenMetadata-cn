@@ -11,7 +11,6 @@
  *  limitations under the License.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
 import ApplicationCard from './ApplicationCard.component';
 
 const props = {
@@ -22,6 +21,10 @@ const props = {
   appName: 'Search Index',
   showDescription: true,
 };
+
+jest.mock('../../../common/RichTextEditor/RichTextEditorPreviewerV1', () =>
+  jest.fn().mockImplementation(({ markdown }) => <div>{markdown}</div>)
+);
 
 describe('ApplicationCard', () => {
   beforeEach(() => {

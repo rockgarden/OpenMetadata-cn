@@ -23,15 +23,16 @@ import static org.openmetadata.service.util.EntityUtil.customFieldMatch;
 import static org.openmetadata.service.util.EntityUtil.getCustomField;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.UriInfo;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintViolationException;
-import javax.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Triple;
 import org.jdbi.v3.sqlobject.transaction.Transaction;
@@ -44,8 +45,10 @@ import org.openmetadata.schema.type.CustomPropertyConfig;
 import org.openmetadata.schema.type.EntityReference;
 import org.openmetadata.schema.type.Include;
 import org.openmetadata.schema.type.Relationship;
+import org.openmetadata.schema.type.change.ChangeSource;
 import org.openmetadata.schema.type.customProperties.EnumConfig;
 import org.openmetadata.schema.type.customProperties.TableConfig;
+import org.openmetadata.schema.utils.JsonUtils;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.TypeRegistry;
 import org.openmetadata.service.exception.CatalogExceptionMessage;
@@ -53,7 +56,6 @@ import org.openmetadata.service.jobs.EnumCleanupHandler;
 import org.openmetadata.service.resources.types.TypeResource;
 import org.openmetadata.service.util.EntityUtil;
 import org.openmetadata.service.util.EntityUtil.Fields;
-import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.RestUtil.PutResponse;
 
 @Slf4j
@@ -69,6 +71,7 @@ public class TypeRepository extends EntityRepository<Type> {
         Entity.getCollectionDAO().typeEntityDAO(),
         PATCH_FIELDS,
         UPDATE_FIELDS);
+    Entity.setTypeRepository(this);
   }
 
   @Override
@@ -120,7 +123,8 @@ public class TypeRepository extends EntityRepository<Type> {
   }
 
   @Override
-  public EntityUpdater getUpdater(Type original, Type updated, Operation operation) {
+  public EntityRepository<Type>.EntityUpdater getUpdater(
+      Type original, Type updated, Operation operation, ChangeSource changeSource) {
     return new TypeUpdater(original, updated, operation);
   }
 
@@ -155,7 +159,7 @@ public class TypeRepository extends EntityRepository<Type> {
     type.setCustomProperties(updatedProperties);
     type.setUpdatedBy(updatedBy);
     type.setUpdatedAt(System.currentTimeMillis());
-    return createOrUpdate(uriInfo, type);
+    return createOrUpdate(uriInfo, type, updatedBy);
   }
 
   private List<CustomProperty> getCustomProperties(Type type) {
@@ -174,6 +178,11 @@ public class TypeRepository extends EntityRepository<Type> {
     for (Triple<String, String, String> result : results) {
       CustomProperty property = JsonUtils.readValue(result.getRight(), CustomProperty.class);
       property.setPropertyType(this.getReferenceByName(result.getMiddle(), NON_DELETED));
+
+      if ("enum".equals(property.getPropertyType().getName())) {
+        sortEnumKeys(property);
+      }
+
       customProperties.add(property);
     }
     customProperties.sort(EntityUtil.compareCustomProperty);
@@ -256,6 +265,14 @@ public class TypeRepository extends EntityRepository<Type> {
     if (uniqueColumns.size() != columns.size()) {
       throw new IllegalArgumentException("Column names must be unique.");
     }
+    if (columns.size() < tableConfig.getMinColumns()
+        || columns.size() > tableConfig.getMaxColumns()) {
+      throw new IllegalArgumentException(
+          "Custom Property table has invalid value columns size must be between "
+              + tableConfig.getMinColumns()
+              + " and "
+              + tableConfig.getMaxColumns());
+    }
 
     try {
       JsonUtils.validateJsonSchema(config.getConfig(), TableConfig.class);
@@ -267,6 +284,19 @@ public class TypeRepository extends EntityRepository<Type> {
 
       throw new IllegalArgumentException(
           CatalogExceptionMessage.customPropertyConfigError("table", validationErrors));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void sortEnumKeys(CustomProperty property) {
+    Object enumConfig = property.getCustomPropertyConfig().getConfig();
+    if (enumConfig instanceof Map) {
+      Map<String, Object> configMap = (Map<String, Object>) enumConfig;
+      if (configMap.get("values") instanceof List) {
+        List<String> values = (List<String>) configMap.get("values");
+        List<String> sortedValues = values.stream().sorted().collect(Collectors.toList());
+        configMap.put("values", sortedValues);
+      }
     }
   }
 
@@ -413,30 +443,30 @@ public class TypeRepository extends EntityRepository<Type> {
       String fieldName = getCustomField(origProperty, "customPropertyConfig");
       if (previous == null || !previous.getVersion().equals(updated.getVersion())) {
         validatePropertyConfigUpdate(entity, origProperty, updatedProperty);
-      }
-      if (recordChange(
-          fieldName,
-          origProperty.getCustomPropertyConfig(),
-          updatedProperty.getCustomPropertyConfig())) {
-        String customPropertyFQN =
-            getCustomPropertyFQN(entity.getName(), updatedProperty.getName());
-        EntityReference propertyType =
-            updatedProperty.getPropertyType(); // Don't store entity reference
-        String customPropertyJson = JsonUtils.pojoToJson(updatedProperty.withPropertyType(null));
-        updatedProperty.withPropertyType(propertyType); // Restore entity reference
-        daoCollection
-            .fieldRelationshipDAO()
-            .upsert(
-                customPropertyFQN,
-                updatedProperty.getPropertyType().getName(),
-                customPropertyFQN,
-                updatedProperty.getPropertyType().getName(),
-                Entity.TYPE,
-                Entity.TYPE,
-                Relationship.HAS.ordinal(),
-                "customProperty",
-                customPropertyJson);
-        postUpdateCustomPropertyConfig(entity, origProperty, updatedProperty);
+        if (recordChange(
+            fieldName,
+            origProperty.getCustomPropertyConfig(),
+            updatedProperty.getCustomPropertyConfig())) {
+          String customPropertyFQN =
+              getCustomPropertyFQN(entity.getName(), updatedProperty.getName());
+          EntityReference propertyType =
+              updatedProperty.getPropertyType(); // Don't store entity reference
+          String customPropertyJson = JsonUtils.pojoToJson(updatedProperty.withPropertyType(null));
+          updatedProperty.withPropertyType(propertyType); // Restore entity reference
+          daoCollection
+              .fieldRelationshipDAO()
+              .upsert(
+                  customPropertyFQN,
+                  updatedProperty.getPropertyType().getName(),
+                  customPropertyFQN,
+                  updatedProperty.getPropertyType().getName(),
+                  Entity.TYPE,
+                  Entity.TYPE,
+                  Relationship.HAS.ordinal(),
+                  "customProperty",
+                  customPropertyJson);
+          postUpdateCustomPropertyConfig(entity, origProperty, updatedProperty);
+        }
       }
     }
 
@@ -460,6 +490,7 @@ public class TypeRepository extends EntityRepository<Type> {
         Type entity, CustomProperty origProperty, CustomProperty updatedProperty) {
       String updatedBy = entity.getUpdatedBy();
       if (origProperty.getPropertyType().getName().equals("enum")) {
+        sortEnumKeys(updatedProperty);
         EnumConfig origConfig =
             JsonUtils.convertValue(
                 origProperty.getCustomPropertyConfig().getConfig(), EnumConfig.class);
@@ -474,7 +505,7 @@ public class TypeRepository extends EntityRepository<Type> {
         HashSet<String> addedKeys = new HashSet<>(updatedKeys);
         addedKeys.removeAll(origKeys);
 
-        if (!removedKeys.isEmpty() && addedKeys.isEmpty()) {
+        if (!removedKeys.isEmpty()) {
           List<String> removedEnumKeys = new ArrayList<>(removedKeys);
 
           try {

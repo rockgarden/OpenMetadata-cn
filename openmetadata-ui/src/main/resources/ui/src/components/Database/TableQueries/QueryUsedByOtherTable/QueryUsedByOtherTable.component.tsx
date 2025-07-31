@@ -13,11 +13,10 @@
 import { Col, Popover, Row, Space, Typography } from 'antd';
 import { DefaultOptionType } from 'antd/lib/select';
 import { isArray, isUndefined, slice, uniqBy } from 'lodash';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
-  getEntityDetailsPath,
   INITIAL_PAGING_VALUE,
   PAGE_SIZE_MEDIUM,
 } from '../../../../constants/constants';
@@ -26,6 +25,7 @@ import { EntityType } from '../../../../enums/entity.enum';
 import { SearchIndex } from '../../../../enums/search.enum';
 import { searchData } from '../../../../rest/miscAPI';
 import { getEntityLabel, getEntityName } from '../../../../utils/EntityUtils';
+import { getEntityDetailsPath } from '../../../../utils/RouterUtils';
 import { AsyncSelect } from '../../../common/AsyncSelect/AsyncSelect';
 import Loader from '../../../common/Loader/Loader';
 import {
@@ -113,7 +113,7 @@ const QueryUsedByOtherTable = ({
 
   const handleOnChange = (
     _: string[],
-    options: DefaultOptionType | DefaultOptionType[]
+    options?: DefaultOptionType | DefaultOptionType[]
   ) => {
     if (isArray(options)) {
       onChange(options);

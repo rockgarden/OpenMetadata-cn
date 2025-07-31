@@ -12,7 +12,6 @@
  */
 
 import { render } from '@testing-library/react';
-import React from 'react';
 import {
   mockEntityDetails,
   mockEntityDetailsWithConstraint,
@@ -35,6 +34,12 @@ jest.mock('../../../../Tag/TagsViewer/TagsViewer', () =>
     .mockImplementation(() => <div data-testid="TagsViewer">TagsViewer</div>)
 );
 
+jest.mock('../../../../common/Badge/Badge.component', () =>
+  jest
+    .fn()
+    .mockImplementation(() => <div data-testid="entity-type">AppBadge</div>)
+);
+
 jest.mock('../../../../../utils/TableUtils', () => ({
   prepareConstraintIcon: jest
     .fn()
@@ -55,7 +60,6 @@ describe('SummaryListItems component tests', () => {
     expect(titleContainer).toBeInTheDocument();
     expect(title).toContainHTML('Title');
     expect(type).toBeInTheDocument();
-    expect(type).toContainHTML(mockEntityDetails.type);
     expect(description).toBeInTheDocument();
   });
 

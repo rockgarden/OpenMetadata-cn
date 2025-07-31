@@ -13,7 +13,7 @@
 import { Button, Checkbox, Col, List, Row, Space, Typography } from 'antd';
 import { isEmpty } from 'lodash';
 import VirtualList from 'rc-virtual-list';
-import React, {
+import {
   UIEventHandler,
   useCallback,
   useEffect,
@@ -23,10 +23,7 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { WILD_CARD_CHAR } from '../../../constants/char.constants';
-import {
-  getEntityDetailsPath,
-  PAGE_SIZE_MEDIUM,
-} from '../../../constants/constants';
+import { PAGE_SIZE_MEDIUM } from '../../../constants/constants';
 import { ERROR_PLACEHOLDER_TYPE } from '../../../enums/common.enum';
 import { EntityTabs, EntityType } from '../../../enums/entity.enum';
 import { TestCase } from '../../../generated/tests/testCase';
@@ -37,6 +34,7 @@ import {
   getEntityName,
 } from '../../../utils/EntityUtils';
 import { getEntityFQN } from '../../../utils/FeedUtils';
+import { getEntityDetailsPath } from '../../../utils/RouterUtils';
 import { replacePlus } from '../../../utils/StringsUtils';
 import ErrorPlaceHolder from '../../common/ErrorWithPlaceholder/ErrorPlaceHolder';
 import Loader from '../../common/Loader/Loader';
@@ -98,8 +96,6 @@ export const AddTestCaseList = ({
             : (prevItems) => [...prevItems, ...testCaseResponse.data]
         );
         setPageNumber(page);
-      } catch (_) {
-        // Nothing here
       } finally {
         setIsLoading(false);
       }
@@ -110,7 +106,7 @@ export const AddTestCaseList = ({
   const handleSubmit = async () => {
     setIsLoading(true);
     const testCaseIds = [...(selectedItems?.values() ?? [])];
-    onSubmit?.(testCaseIds);
+    await onSubmit?.(testCaseIds);
     setIsLoading(false);
   };
 
@@ -283,7 +279,7 @@ export const AddTestCaseList = ({
             loading={isLoading}
             type="primary"
             onClick={handleSubmit}>
-            {submitText ?? t('label.submit')}
+            {submitText ?? t('label.create')}
           </Button>
         </Col>
       )}

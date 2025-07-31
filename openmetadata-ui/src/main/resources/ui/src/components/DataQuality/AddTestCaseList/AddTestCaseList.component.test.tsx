@@ -10,8 +10,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-import { act, fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
+import {
+  act,
+  fireEvent,
+  queryByAttribute,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { EntityReference } from '../../../generated/tests/testCase';
 import { AddTestCaseList } from './AddTestCaseList.component';
 import { AddTestCaseModalProps } from './AddTestCaseList.interface';
@@ -78,6 +84,10 @@ const mockProps: AddTestCaseModalProps = {
   showButton: true,
 };
 
+jest.mock('../../../utils/RouterUtils', () => ({
+  getEntityDetailsPath: jest.fn(),
+}));
+
 describe('AddTestCaseList', () => {
   it('renders the component', async () => {
     await act(async () => {
@@ -102,8 +112,12 @@ describe('AddTestCaseList', () => {
     await act(async () => {
       render(<AddTestCaseList {...mockProps} />);
     });
-    await act(async () => {
-      await fireEvent.click(screen.getByTestId('submit'));
+    const submitBtn = screen.getByTestId('submit');
+    fireEvent.click(submitBtn);
+    await waitFor(() => {
+      const loader = queryByAttribute('aria-label', submitBtn, 'loading');
+
+      expect(loader).toBeInTheDocument();
     });
 
     expect(mockProps.onSubmit).toHaveBeenCalledWith([]);

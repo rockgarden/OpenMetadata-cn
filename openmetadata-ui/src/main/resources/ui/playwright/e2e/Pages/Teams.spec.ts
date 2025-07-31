@@ -21,6 +21,7 @@ import { TeamClass } from '../../support/team/TeamClass';
 import { UserClass } from '../../support/user/UserClass';
 import { performAdminLogin } from '../../utils/admin';
 import {
+  clickOutside,
   createNewPage,
   descriptionBox,
   descriptionBoxReadOnly,
@@ -28,12 +29,14 @@ import {
   redirectToHomePage,
   toastNotification,
   uuid,
+  visitOwnProfilePage,
 } from '../../utils/common';
 import { addMultiOwner } from '../../utils/entity';
 import { settingClick } from '../../utils/sidebar';
 import {
   addTeamOwnerToEntity,
   addUserInTeam,
+  checkTeamTabCount,
   createTeam,
   hardDeleteTeam,
   searchTeam,
@@ -113,7 +116,7 @@ test.describe('Teams Page', () => {
 
   test('Teams Page Flow', async ({ page }) => {
     await test.step('Create a new team', async () => {
-      await settingClick(page, GlobalSettingOptions.TEAMS);
+      await checkTeamTabCount(page);
       await page.waitForLoadState('networkidle');
 
       await page.waitForSelector('[data-testid="add-team"]');
@@ -262,8 +265,7 @@ test.describe('Teams Page', () => {
       await page.locator('[data-testid="saveAssociatedTag"]').click();
       await patchTeamResponse;
 
-      // Validate the updated display name
-      await expect(page.locator('[data-testid="team-heading"]')).toHaveText(
+      await expect(page.getByTestId('team-heading')).toHaveText(
         teamDetails.updatedName
       );
 
@@ -281,8 +283,6 @@ test.describe('Teams Page', () => {
       await expect(page.locator('[data-testid="inactive-link"]')).toContainText(
         teamDetails.updatedName
       );
-
-      await page.locator('[role="tablist"] [data-icon="right"]').click();
 
       // Click on edit description button
       await page.locator('[data-testid="edit-description"]').click();
@@ -341,9 +341,9 @@ test.describe('Teams Page', () => {
       await fetchOrganizationResponse;
 
       // Check if the table does not contain the team name
-      await expect(page.locator('table')).not.toContainText(
-        teamDetails?.displayName ?? ''
-      );
+      await expect(
+        page.getByRole('cell', { name: teamDetails?.displayName ?? '' })
+      ).not.toBeVisible();
 
       // Click on the show deleted button
       await page.locator('[data-testid="show-deleted"]').click();
@@ -396,12 +396,14 @@ test.describe('Teams Page', () => {
       'true'
     );
 
-    await page.click('body'); // Equivalent to clicking outside
+    await clickOutside(page);
 
     await hardDeleteTeam(page);
   });
 
-  test('Create a new private team', async ({ page }) => {
+  test('Create a new private team and check if its visible to admin in teams selection dropdown on user profile', async ({
+    page,
+  }) => {
     await settingClick(page, GlobalSettingOptions.TEAMS);
 
     await page.waitForSelector('[data-testid="add-team"]');
@@ -422,7 +424,35 @@ test.describe('Teams Page', () => {
       'false'
     );
 
-    await page.click('body'); // Equivalent to clicking outside
+    await clickOutside(page);
+
+    await visitOwnProfilePage(page);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByTestId('edit-teams-button').click();
+    await page.getByTestId('team-select').click();
+
+    await expect(page.getByTestId('profile-teams-edit-popover')).toBeVisible();
+
+    await page
+      .getByTestId('profile-teams-edit-popover')
+      .getByText(publicTeam.displayName)
+      .click();
+
+    const updateUserResponse = page.waitForResponse('/api/v1/users/*');
+    await page.getByTestId('teams-edit-save-btn').click();
+    await updateUserResponse;
+
+    await expect(
+      page.getByTestId('profile-teams-edit-popover')
+    ).not.toBeVisible();
+
+    await page
+      .getByTestId('user-profile-teams')
+      .getByText(publicTeam.displayName)
+      .click();
+
+    await page.waitForLoadState('networkidle');
 
     await hardDeleteTeam(page);
   });

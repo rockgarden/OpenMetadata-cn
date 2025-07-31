@@ -19,7 +19,6 @@ import static org.openmetadata.common.utils.CommonUtil.listOrEmpty;
 import static org.openmetadata.service.util.EntityUtil.fieldAdded;
 import static org.openmetadata.service.util.EntityUtil.fieldUpdated;
 import static org.openmetadata.service.util.TestUtils.ADMIN_AUTH_HEADERS;
-import static org.openmetadata.service.util.TestUtils.UpdateType.CHANGE_CONSOLIDATED;
 import static org.openmetadata.service.util.TestUtils.UpdateType.MINOR_UPDATE;
 import static org.openmetadata.service.util.TestUtils.assertCustomProperties;
 import static org.openmetadata.service.util.TestUtils.assertResponse;
@@ -28,14 +27,14 @@ import static org.openmetadata.service.util.TestUtils.assertResponseContains;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response.Status;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.HttpResponseException;
 import org.junit.jupiter.api.MethodOrderer;
@@ -50,12 +49,12 @@ import org.openmetadata.schema.type.CustomPropertyConfig;
 import org.openmetadata.schema.type.EntityReference;
 import org.openmetadata.schema.type.customProperties.EnumConfig;
 import org.openmetadata.schema.type.customProperties.TableConfig;
+import org.openmetadata.schema.utils.JsonUtils;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.resources.EntityResourceTest;
 import org.openmetadata.service.resources.types.TypeResource;
 import org.openmetadata.service.resources.types.TypeResource.TypeList;
 import org.openmetadata.service.util.EntityUtil;
-import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.TestUtils;
 import org.openmetadata.service.util.TestUtils.UpdateType;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -141,15 +140,14 @@ public class TypeResourceTest extends EntityResourceTest<Type, CreateType> {
     fieldA.withDescription("updated2").withDisplayName("Updated Integer A 2");
     String json = JsonUtils.pojoToJson(topicEntity);
     topicEntity.setCustomProperties(List.of(fieldA));
-    change = getChangeDescription(topicEntity, CHANGE_CONSOLIDATED);
-    fieldUpdated(change, EntityUtil.getCustomField(fieldA, "description"), "intA", "updated2");
+    change = getChangeDescription(topicEntity, MINOR_UPDATE);
+    fieldUpdated(change, EntityUtil.getCustomField(fieldA, "description"), "updated", "updated2");
     fieldUpdated(
         change,
         EntityUtil.getCustomField(fieldA, "displayName"),
-        "Integer A",
+        "Updated Integer A",
         "Updated Integer A 2");
-    topicEntity =
-        patchEntityAndCheck(topicEntity, json, ADMIN_AUTH_HEADERS, CHANGE_CONSOLIDATED, change);
+    topicEntity = patchEntityAndCheck(topicEntity, json, ADMIN_AUTH_HEADERS, MINOR_UPDATE, change);
 
     // Add a second property with name intB with type integer
     // Note that since this is PUT operation, the previous changes are not consolidated
@@ -278,21 +276,6 @@ public class TypeResourceTest extends EntityResourceTest<Type, CreateType> {
         addCustomPropertyAndCheck(
             tableEntity.getId(), enumFieldA, ADMIN_AUTH_HEADERS, MINOR_UPDATE, change5);
     assertCustomProperties(new ArrayList<>(List.of(enumFieldA)), tableEntity.getCustomProperties());
-
-    // Changing custom property description with PATCH
-    // Changes from this PATCH is consolidated with the previous changes
-    enumFieldA.withDescription("updated2");
-    String json = JsonUtils.pojoToJson(tableEntity);
-    tableEntity.setCustomProperties(List.of(enumFieldA));
-    change = getChangeDescription(tableEntity, CHANGE_CONSOLIDATED);
-    fieldUpdated(
-        change5,
-        EntityUtil.getCustomField(enumFieldA, "description"),
-        "updatedEnumTest",
-        "updated2");
-
-    tableEntity =
-        patchEntityAndCheck(tableEntity, json, ADMIN_AUTH_HEADERS, CHANGE_CONSOLIDATED, change5);
 
     /* // Add a second property with name intB with type integer
     // Note that since this is PUT operation, the previous changes are not consolidated
@@ -424,16 +407,7 @@ public class TypeResourceTest extends EntityResourceTest<Type, CreateType> {
     tableTypeFieldA.withDescription("updated tableCustomPropertyTest description 2");
     String json = JsonUtils.pojoToJson(databaseEntity);
     databaseEntity.setCustomProperties(List.of(tableTypeFieldA));
-    change = getChangeDescription(databaseEntity, CHANGE_CONSOLIDATED);
-
-    fieldUpdated(
-        change6,
-        EntityUtil.getCustomField(tableTypeFieldA, "description"),
-        "updated tableCustomPropertyTest description",
-        "updated tableCustomPropertyTest description 2");
-
-    databaseEntity =
-        patchEntityAndCheck(databaseEntity, json, ADMIN_AUTH_HEADERS, CHANGE_CONSOLIDATED, change6);
+    change6 = getChangeDescription(databaseEntity, MINOR_UPDATE);
   }
 
   @Test

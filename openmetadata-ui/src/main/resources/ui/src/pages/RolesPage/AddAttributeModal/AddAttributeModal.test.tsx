@@ -12,7 +12,6 @@
  */
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
 import { EntityType } from '../../../enums/entity.enum';
 import { POLICY_LIST_WITH_PAGING, ROLES_LIST_WITH_PAGING } from '../Roles.mock';
 import AddAttributeModal from './AddAttributeModal';
@@ -41,6 +40,16 @@ jest.mock('../../../utils/CommonUtils', () => ({
 
 jest.mock('../../../utils/ToastUtils', () => ({
   showErrorToast: jest.fn(),
+}));
+
+jest.mock('../../../utils/StringsUtils', () => ({
+  ...jest.requireActual('../../../utils/StringsUtils'),
+  stringToHTML: jest.fn((text) => text),
+}));
+
+jest.mock('../../../utils/EntityUtils', () => ({
+  ...jest.requireActual('../../../utils/EntityUtils'),
+  highlightSearchText: jest.fn((text) => text),
 }));
 
 jest.mock(

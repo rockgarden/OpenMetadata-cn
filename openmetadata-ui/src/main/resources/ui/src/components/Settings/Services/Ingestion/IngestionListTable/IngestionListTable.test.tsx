@@ -11,9 +11,8 @@
  *  limitations under the License.
  */
 
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { usePermissionProvider } from '../../../../../context/PermissionProvider/PermissionProvider';
 import { mockIngestionData } from '../../../../../mocks/Ingestion.mock';
@@ -48,10 +47,17 @@ jest.mock('../../../../../rest/ingestionPipelineAPI', () => ({
   deleteIngestionPipelineById: jest
     .fn()
     .mockImplementation(() => Promise.resolve()),
+  getRunHistoryForPipeline: jest
+    .fn()
+    .mockImplementation(() => Promise.resolve({ data: [] })),
 }));
 
 jest.mock('../../../../../utils/IngestionUtils', () => ({
-  getErrorPlaceHolder: jest.fn().mockImplementation(() => 'ErrorPlaceholder'),
+  getErrorPlaceHolder: jest
+    .fn()
+    .mockImplementation(() => (
+      <div data-testid="error-placeholder">ErrorPlaceholder</div>
+    )),
 }));
 
 jest.mock('./PipelineActions/PipelineActions', () =>
@@ -78,6 +84,10 @@ jest.mock('../../../../Modals/EntityDeleteModal/EntityDeleteModal', () =>
     ))
 );
 
+jest.mock('./IngestionStatusCount/IngestionStatusCount', () =>
+  jest.fn().mockImplementation(() => <div>IngestionStatusCount</div>)
+);
+
 jest.mock('../IngestionRecentRun/IngestionRecentRuns.component', () => ({
   IngestionRecentRuns: jest
     .fn()
@@ -98,12 +108,26 @@ jest.mock('../../../../common/NextPrevious/NextPrevious', () =>
 );
 
 jest.mock('../../../../../utils/IngestionListTableUtils', () => ({
-  renderNameField: jest.fn().mockImplementation(() => <div>nameField</div>),
+  renderNameField: jest
+    .fn()
+    .mockImplementation(() => () => <div>nameField</div>),
   renderScheduleField: jest
     .fn()
     .mockImplementation(() => <div>scheduleField</div>),
   renderStatusField: jest.fn().mockImplementation(() => <div>statusField</div>),
-  renderTypeField: jest.fn().mockImplementation(() => <div>typeField</div>),
+  renderTypeField: jest
+    .fn()
+    .mockImplementation(() => () => <div>typeField</div>),
+}));
+
+jest.mock('../../../../../utils/EntityUtils', () => ({
+  ...jest.requireActual('../../../../../utils/EntityUtils'),
+  highlightSearchText: jest.fn((text) => text),
+}));
+
+jest.mock('../../../../../utils/date-time/DateTimeUtils', () => ({
+  getEpochMillisForPastDays: jest.fn().mockImplementation(() => 1),
+  getCurrentMillis: jest.fn().mockImplementation(() => 1),
 }));
 
 describe('Ingestion', () => {
@@ -113,6 +137,7 @@ describe('Ingestion', () => {
         <IngestionListTable
           {...mockIngestionListTableProps}
           emptyPlaceholder="customErrorPlaceholder"
+          extraTableProps={{ scroll: undefined }}
           ingestionData={[]}
         />,
         {
@@ -129,6 +154,7 @@ describe('Ingestion', () => {
       render(
         <IngestionListTable
           {...mockIngestionListTableProps}
+          extraTableProps={{ scroll: undefined }}
           ingestionData={[]}
         />,
         {
@@ -261,9 +287,7 @@ describe('Ingestion', () => {
 
     const confirmButton = screen.getByText('EntityDeleteModal');
 
-    await act(async () => {
-      userEvent.click(confirmButton);
-    });
+    fireEvent.click(confirmButton);
 
     expect(deleteIngestionPipelineById).toHaveBeenCalledWith('id');
   });

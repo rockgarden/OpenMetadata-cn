@@ -1,8 +1,8 @@
-#  Copyright 2021 Collate
-#  Licensed under the Apache License, Version 2.0 (the "License");
+#  Copyright 2025 Collate
+#  Licensed under the Collate Community License, Version 1.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
-#  http://www.apache.org/licenses/LICENSE-2.0
+#  https://github.com/open-metadata/OpenMetadata/blob/main/ingestion/LICENSE
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,6 +12,7 @@
 import json
 import secrets
 import traceback
+from copy import deepcopy
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -63,6 +64,7 @@ from metadata.readers.file.config_source_factory import get_reader
 from metadata.utils import fqn
 from metadata.utils.filters import filter_by_container
 from metadata.utils.logger import ingestion_logger
+from metadata.utils.s3_utils import list_s3_objects
 from metadata.utils.tag_utils import get_ometa_tag_and_classification, get_tag_label
 
 logger = ingestion_logger()
@@ -304,7 +306,6 @@ class S3Source(StorageServiceSource):
                     client=self.s3_client,
                 )
             except Exception as err:
-                logger.warning()
                 self.status.failed(
                     error=StackTraceError(
                         name=f"{bucket_name}/{sample_key}",
@@ -336,6 +337,44 @@ class S3Source(StorageServiceSource):
                 )
         return None
 
+    def _generate_structured_containers_by_depth(
+        self,
+        bucket_response: S3BucketResponse,
+        metadata_entry: MetadataEntry,
+        parent: Optional[EntityReference] = None,
+    ) -> Iterable[S3ContainerDetails]:
+        try:
+            prefix = self._get_sample_file_prefix(metadata_entry=metadata_entry)
+            if prefix:
+                kwargs = {"Bucket": bucket_response.name, "Prefix": prefix}
+                response = list_s3_objects(self.s3_client, **kwargs)
+                # total depth is depth of prefix + depth of the metadata entry
+                total_depth = metadata_entry.depth + len(prefix[:-1].split("/"))
+                candidate_keys = {
+                    "/".join(entry.get("Key").split("/")[:total_depth]) + "/"
+                    for entry in response
+                    if entry
+                    and entry.get("Key")
+                    and len(entry.get("Key").split("/")) > total_depth
+                }
+                for key in candidate_keys:
+                    metadata_entry_copy = deepcopy(metadata_entry)
+                    metadata_entry_copy.dataPath = key.strip(KEY_SEPARATOR)
+                    structured_container: Optional[
+                        S3ContainerDetails
+                    ] = self._generate_container_details(
+                        bucket_response=bucket_response,
+                        metadata_entry=metadata_entry_copy,
+                        parent=parent,
+                    )
+                    if structured_container:
+                        yield structured_container
+        except Exception as err:
+            logger.warning(
+                f"Error while generating structured containers by depth for {metadata_entry.dataPath} - {err}"
+            )
+            logger.debug(traceback.format_exc())
+
     def _generate_structured_containers(
         self,
         bucket_response: S3BucketResponse,
@@ -347,15 +386,22 @@ class S3Source(StorageServiceSource):
                 f"Extracting metadata from path {metadata_entry.dataPath.strip(KEY_SEPARATOR)} "
                 f"and generating structured container"
             )
-            structured_container: Optional[
-                S3ContainerDetails
-            ] = self._generate_container_details(
-                bucket_response=bucket_response,
-                metadata_entry=metadata_entry,
-                parent=parent,
-            )
-            if structured_container:
-                yield structured_container
+            if metadata_entry.depth == 0:
+                structured_container: Optional[
+                    S3ContainerDetails
+                ] = self._generate_container_details(
+                    bucket_response=bucket_response,
+                    metadata_entry=metadata_entry,
+                    parent=parent,
+                )
+                if structured_container:
+                    yield structured_container
+            else:
+                yield from self._generate_structured_containers_by_depth(
+                    bucket_response=bucket_response,
+                    metadata_entry=metadata_entry,
+                    parent=parent,
+                )
 
     def is_valid_unstructured_file(self, accepted_extensions: List, key: str) -> bool:
         # Split the string into a list of values
@@ -418,12 +464,11 @@ class S3Source(StorageServiceSource):
         parent: Optional[EntityReference] = None,
     ):
         bucket_name = bucket_response.name
-        response = self.s3_client.list_objects_v2(
-            Bucket=bucket_name, Prefix=metadata_entry.dataPath
-        )
+        kwargs = {"Bucket": bucket_name, "Prefix": metadata_entry.dataPath}
+        response = list_s3_objects(self.s3_client, **kwargs)
         candidate_keys = [
             entry["Key"]
-            for entry in response[S3_CLIENT_ROOT_RESPONSE]
+            for entry in response
             if entry and entry.get("Key") and not entry.get("Key").endswith("/")
         ]
         for key in candidate_keys:

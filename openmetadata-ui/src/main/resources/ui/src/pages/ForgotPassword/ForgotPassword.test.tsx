@@ -11,12 +11,11 @@
  *  limitations under the License.
  */
 import { act, fireEvent, render } from '@testing-library/react';
-import React from 'react';
 import { useBasicAuth } from '../../components/Auth/AuthProviders/BasicAuthProvider';
 import { showErrorToast } from '../../utils/ToastUtils';
 import ForgotPassword from './ForgotPassword.component';
 
-const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 const mockHandleForgotPassword = jest.fn();
 const mockHandleError = jest.fn().mockImplementation(() => {
   return Promise.reject({
@@ -34,14 +33,27 @@ jest.mock('../../components/Auth/AuthProviders/BasicAuthProvider', () => {
   };
 });
 
+jest.mock('../../components/common/DocumentTitle/DocumentTitle', () => {
+  return jest.fn().mockReturnValue(<p>DocumentTitle</p>);
+});
+
+jest.mock('../../hooks/useAlertStore', () => ({
+  useAlertStore: jest.fn(() => ({
+    alert: { message: 'Test Alert', type: 'success' },
+    resetAlert: jest.fn(),
+  })),
+}));
+
+jest.mock('../../components/AlertBar/AlertBar', () => {
+  return jest.fn().mockReturnValue(<p data-testid="alert-bar">Alert Bar</p>);
+});
+
 jest.mock('../../utils/ToastUtils', () => ({
   showErrorToast: jest.fn(),
 }));
 
 jest.mock('react-router-dom', () => ({
-  useHistory: jest.fn().mockImplementation(() => ({
-    push: mockPush,
-  })),
+  useNavigate: jest.fn().mockImplementation(() => mockNavigate),
 }));
 
 describe('ForgotPassword', () => {
@@ -61,7 +73,7 @@ describe('ForgotPassword', () => {
 
     const { getByLabelText, getByText } = render(<ForgotPassword />);
     const emailInput = getByLabelText('label.email');
-    const submitButton = getByText('label.submit');
+    const submitButton = getByText('label.send-login-link');
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     });
@@ -78,7 +90,7 @@ describe('ForgotPassword', () => {
       <ForgotPassword />
     );
     const emailInput = getByLabelText('label.email');
-    const submitButton = getByText('label.submit');
+    const submitButton = getByText('label.send-login-link');
 
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: '' } });
@@ -95,7 +107,7 @@ describe('ForgotPassword', () => {
       <ForgotPassword />
     );
     const emailInput = getByLabelText('label.email');
-    const submitButton = getByText('label.submit');
+    const submitButton = getByText('label.send-login-link');
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     });
@@ -104,9 +116,7 @@ describe('ForgotPassword', () => {
     });
 
     expect(mockHandleForgotPassword).toHaveBeenCalledWith('test@example.com');
-    expect(getByTestId('success-screen-container')).toBeInTheDocument();
-    expect(getByTestId('success-icon')).toBeInTheDocument();
-    expect(getByTestId('success-line')).toBeInTheDocument();
+    expect(getByTestId('alert-bar')).toBeInTheDocument();
   });
 
   it('show call push back to login', async () => {
@@ -116,7 +126,7 @@ describe('ForgotPassword', () => {
       fireEvent.click(goBackButton);
     });
 
-    expect(mockPush).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalled();
   });
 
   it('should call show error toast', async () => {
@@ -124,11 +134,11 @@ describe('ForgotPassword', () => {
       handleForgotPassword: mockHandleError,
     });
 
-    const { getByLabelText, getByText, queryByTestId } = render(
+    const { getByLabelText, getByText, getByTestId } = render(
       <ForgotPassword />
     );
     const emailInput = getByLabelText('label.email');
-    const submitButton = getByText('label.submit');
+    const submitButton = getByText('label.send-login-link');
     await act(async () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     });
@@ -138,6 +148,6 @@ describe('ForgotPassword', () => {
 
     expect(showErrorToast).toHaveBeenCalledWith('server.email-not-found');
     expect(mockHandleError).toHaveBeenCalledWith('test@example.com');
-    expect(queryByTestId('success-screen-container')).not.toBeInTheDocument();
+    expect(getByTestId('alert-bar')).toBeInTheDocument();
   });
 });

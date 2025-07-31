@@ -14,14 +14,14 @@
 import { Tabs } from 'antd';
 import { Change } from 'diff';
 import { isEqual } from 'lodash';
-import React, { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import RichTextEditor from '../../../components/common/RichTextEditor/RichTextEditor';
 import { EditorContentRef } from '../../../components/common/RichTextEditor/RichTextEditor.interface';
 import RichTextEditorPreviewerV1 from '../../../components/common/RichTextEditor/RichTextEditorPreviewerV1';
 import { isDescriptionContentEmpty } from '../../../utils/BlockEditorUtils';
 import { getDescriptionDiff } from '../../../utils/TasksUtils';
-import { DiffView } from './DiffView';
+import DiffView from './DiffView/DiffView';
 
 interface Props {
   value: string;

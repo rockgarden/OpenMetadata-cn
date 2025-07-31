@@ -11,10 +11,10 @@
  *  limitations under the License.
  */
 import { render } from '@testing-library/react';
-import React from 'react';
-import { getEntityDetailsPath } from '../constants/constants';
+import { startCase } from 'lodash';
 import { EntityTabs, EntityType } from '../enums/entity.enum';
 import { ExplorePageTabs } from '../enums/Explore.enum';
+import { ServiceCategory } from '../enums/service.enum';
 import { TestSuite } from '../generated/tests/testCase';
 import { MOCK_CHART_DATA } from '../mocks/Chart.mock';
 import { MOCK_TABLE, MOCK_TIER_DATA } from '../mocks/TableData.mock';
@@ -22,6 +22,7 @@ import {
   columnSorter,
   getBreadcrumbForTestSuite,
   getColumnSorter,
+  getEntityBreadcrumbs,
   getEntityLinkFromType,
   getEntityOverview,
   highlightEntityNameAndDescription,
@@ -32,11 +33,24 @@ import {
   entityWithoutNameAndDescHighlight,
   highlightedEntityDescription,
   highlightedEntityDisplayName,
+  mockDatabaseUrl,
+  mockEntityForDatabase,
+  mockEntityForDatabaseSchema,
   mockHighlightedResult,
   mockHighlights,
   mockSearchText,
+  mockServiceUrl,
+  mockSettingUrl,
   mockText,
+  mockUrl,
 } from './mocks/EntityUtils.mock';
+import {
+  getEntityDetailsPath,
+  getServiceDetailsPath,
+  getSettingPath,
+} from './RouterUtils';
+import { getServiceRouteFromServiceType } from './ServiceUtils';
+import { getTierTags } from './TableUtils';
 
 jest.mock('../constants/constants', () => ({
   getEntityDetailsPath: jest.fn(),
@@ -46,6 +60,72 @@ jest.mock('../constants/constants', () => ({
 jest.mock('./RouterUtils', () => ({
   getDataQualityPagePath: jest.fn(),
   getDomainPath: jest.fn(),
+  getSettingPath: jest.fn(),
+  getServiceDetailsPath: jest.fn(),
+  getEntityDetailsPath: jest.fn(),
+}));
+
+jest.mock('./ServiceUtils', () => ({
+  getServiceRouteFromServiceType: jest.fn(),
+}));
+
+jest.mock('./ToastUtils', () => ({
+  showErrorToast: jest.fn(),
+}));
+
+jest.mock('./ExportUtilClassBase', () => ({
+  __esModule: true,
+  default: {
+    exportMethodBasedOnType: jest.fn(),
+  },
+}));
+
+jest.mock('../components/Tag/TagsV1/TagsV1.component', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../components/common/OwnerLabel/OwnerLabel.component', () => ({
+  __esModule: true,
+  OwnerLabel: jest.fn(),
+}));
+
+jest.mock('../components/common/DomainLabel/DomainLabel.component', () => ({
+  __esModule: true,
+  DomainLabel: jest.fn(),
+}));
+
+jest.mock('../components/common/QueryCount/QueryCount.component', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('./StringsUtils', () => ({
+  bytesToSize: jest.fn(),
+  getEncodedFqn: jest.fn(),
+  stringToHTML: jest.fn().mockImplementation((value) => value),
+}));
+jest.mock('./TableUtils', () => ({
+  getDataTypeString: jest.fn(),
+  getTagsWithoutTier: jest.fn(),
+  getTierTags: jest.fn(),
+  getUsagePercentile: jest.fn().mockImplementation((value) => value + 'th'),
+}));
+
+jest.mock('./TagsUtils', () => ({
+  getTableTags: jest.fn(),
+}));
+
+jest.mock('./CommonUtils', () => ({
+  getPartialNameFromTableFQN: jest.fn().mockImplementation((value) => value),
+  getTableFQNFromColumnFQN: jest.fn().mockImplementation((value) => value),
+}));
+jest.mock('./DataInsightUtils', () => ({
+  getDataInsightPathWithFqn: jest.fn(),
+}));
+jest.mock('./EntityLink', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation((value) => value),
 }));
 
 describe('EntityUtils unit tests', () => {
@@ -124,7 +204,10 @@ describe('EntityUtils unit tests', () => {
   describe('getEntityOverview', () => {
     it('should call getChartOverview and get ChartData if ExplorePageTabs is charts', () => {
       const result = JSON.stringify(
-        getEntityOverview(ExplorePageTabs.CHARTS, MOCK_CHART_DATA)
+        getEntityOverview(ExplorePageTabs.CHARTS, {
+          ...MOCK_CHART_DATA,
+          dataProducts: [],
+        })
       );
 
       expect(result).toContain('label.owner-plural');
@@ -146,6 +229,7 @@ describe('EntityUtils unit tests', () => {
         getEntityOverview(ExplorePageTabs.TABLES, {
           ...MOCK_TABLE,
           tags: [MOCK_TIER_DATA],
+          dataProducts: [],
         })
       );
 
@@ -159,13 +243,12 @@ describe('EntityUtils unit tests', () => {
       expect(result).toContain('label.query-plural');
       expect(result).toContain('label.column-plural');
       expect(result).toContain('label.row-plural');
-
-      expect(result).toContain('Tier4');
+      expect(getTierTags).toHaveBeenCalledWith([MOCK_TIER_DATA]);
       expect(result).toContain('Regular');
       expect(result).toContain('sample_data');
       expect(result).toContain('ecommerce_db');
       expect(result).toContain('shopify');
-      expect(result).toContain('0th label.pctile-lowercase');
+      expect(result).toContain('0th');
       expect(result).toContain('4');
       expect(result).toContain('14567');
     });
@@ -354,5 +437,80 @@ describe('EntityUtils unit tests', () => {
         expect(result).toBe(expected);
       }
     );
+  });
+
+  describe('getEntityBreadcrumbs', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return breadcrumbs for EntityType.DATABASE', () => {
+      (getServiceRouteFromServiceType as jest.Mock).mockReturnValue(mockUrl);
+      (getSettingPath as jest.Mock).mockReturnValue(mockSettingUrl);
+      (getServiceDetailsPath as jest.Mock).mockReturnValue(
+        '/service/databaseServices/mysql_sample'
+      );
+      (getEntityDetailsPath as jest.Mock).mockReturnValue('/database/default');
+
+      const result = getEntityBreadcrumbs(
+        mockEntityForDatabase,
+        EntityType.DATABASE
+      );
+
+      expect(result).toEqual([
+        {
+          name: startCase(ServiceCategory.DATABASE_SERVICES),
+          url: mockSettingUrl,
+        },
+        { name: 'mysql_sample', url: '/service/databaseServices/mysql_sample' },
+        {
+          name: 'default',
+          url: '/database/default',
+        },
+      ]);
+
+      expect(getServiceRouteFromServiceType).toHaveBeenCalledWith(
+        ServiceCategory.DATABASE_SERVICES
+      );
+    });
+
+    it('should return breadcrumbs for EntityType.DATABASE_SCHEMA', () => {
+      (getSettingPath as jest.Mock).mockReturnValue(mockSettingUrl);
+      (getServiceDetailsPath as jest.Mock).mockReturnValue(mockServiceUrl);
+      (getEntityDetailsPath as jest.Mock).mockReturnValue(mockDatabaseUrl);
+
+      const result = getEntityBreadcrumbs(
+        mockEntityForDatabaseSchema,
+        EntityType.DATABASE_SCHEMA
+      );
+
+      expect(result).toEqual([
+        {
+          name: startCase(ServiceCategory.DATABASE_SERVICES),
+          url: mockSettingUrl,
+        },
+        {
+          name: 'sample_data',
+          url: mockServiceUrl,
+        },
+        {
+          name: 'ecommerce_db',
+          url: mockDatabaseUrl,
+        },
+        {
+          name: 'shopify',
+          url: '/entity/MockDatabase',
+        },
+      ]);
+
+      expect(getServiceDetailsPath).toHaveBeenCalledWith(
+        'sample_data',
+        ServiceCategory.DATABASE_SERVICES
+      );
+      expect(getEntityDetailsPath).toHaveBeenCalledWith(
+        EntityType.DATABASE,
+        'sample_data.ecommerce_db'
+      );
+    });
   });
 });

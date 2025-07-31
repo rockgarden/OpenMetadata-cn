@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Collate.
+ *  Copyright 2025 Collate.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -296,6 +296,10 @@ export interface OidcClientConfig {
      */
     id?: string;
     /**
+     * Validity for the JWT Token created from SAML Response
+     */
+    maxAge?: string;
+    /**
      * Max Clock Skew
      */
     maxClockSkew?: string;
@@ -303,6 +307,10 @@ export interface OidcClientConfig {
      * Preferred Jws Algorithm.
      */
     preferredJwsAlgorithm?: string;
+    /**
+     * Prompt whether login/consent
+     */
+    prompt?: string;
     /**
      * Auth0 Client Secret Key.
      */
@@ -319,6 +327,10 @@ export interface OidcClientConfig {
      * Server Url.
      */
     serverUrl?: string;
+    /**
+     * Validity for the Session in case of confidential clients
+     */
+    sessionExpiry?: number;
     /**
      * Tenant in case of Azure.
      */

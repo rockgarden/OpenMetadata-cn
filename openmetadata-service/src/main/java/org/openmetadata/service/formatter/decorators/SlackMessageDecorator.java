@@ -14,7 +14,7 @@
 package org.openmetadata.service.formatter.decorators;
 
 import static org.openmetadata.common.utils.CommonUtil.nullOrEmpty;
-import static org.openmetadata.service.util.email.EmailUtil.getSmtpSettings;
+import static org.openmetadata.service.util.EntityUtil.encodeEntityFqnSafe;
 
 import com.slack.api.model.block.Blocks;
 import com.slack.api.model.block.LayoutBlock;
@@ -39,6 +39,7 @@ import org.openmetadata.schema.type.TagLabel;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.apps.bundles.changeEvent.slack.SlackMessage;
 import org.openmetadata.service.exception.UnhandledServerException;
+import org.openmetadata.service.util.email.EmailUtil;
 
 public class SlackMessageDecorator implements MessageDecorator<SlackMessage> {
 
@@ -77,14 +78,17 @@ public class SlackMessageDecorator implements MessageDecorator<SlackMessage> {
     return "~";
   }
 
+  @Override
   public String getEntityUrl(String prefix, String fqn, String additionalParams) {
+    String encodedFqn = encodeEntityFqnSafe(fqn);
     return String.format(
         "<%s/%s/%s%s|%s>",
-        getSmtpSettings().getOpenMetadataUrl(),
+        EmailUtil.getOMBaseURL(),
         prefix,
-        fqn.trim().replaceAll(" ", "%20"),
+        encodedFqn, // Use safely encoded FQN in the URL
         nullOrEmpty(additionalParams) ? "" : String.format("/%s", additionalParams),
-        fqn.trim());
+        fqn.trim() // Display text remains unencoded
+        );
   }
 
   @Override
@@ -221,11 +225,10 @@ public class SlackMessageDecorator implements MessageDecorator<SlackMessage> {
     // desc about the event
     List<String> thread_messages = outgoingMessage.getMessages();
     thread_messages.forEach(
-        (message) -> {
-          blocks.add(
-              Blocks.section(
-                  section -> section.text(BlockCompositions.markdownText("> " + message))));
-        });
+        (message) ->
+            blocks.add(
+                Blocks.section(
+                    section -> section.text(BlockCompositions.markdownText("> " + message)))));
 
     // Divider
     blocks.add(Blocks.divider());
@@ -308,11 +311,10 @@ public class SlackMessageDecorator implements MessageDecorator<SlackMessage> {
     // desc about the event
     List<String> thread_messages = outgoingMessage.getMessages();
     thread_messages.forEach(
-        (message) -> {
-          blocks.add(
-              Blocks.section(
-                  section -> section.text(BlockCompositions.markdownText("> " + message))));
-        });
+        (message) ->
+            blocks.add(
+                Blocks.section(
+                    section -> section.text(BlockCompositions.markdownText("> " + message)))));
 
     // Divider
     blocks.add(Blocks.divider());
